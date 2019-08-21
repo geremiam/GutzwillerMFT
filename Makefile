@@ -12,8 +12,8 @@ LDFLAGS=-L${LAPACKE_LIB} -L${NETCDF_LIB}
 # Flags for linking with libraries (place after all object files)
 LDLIBS=-llapacke -lnetcdf
 # List of object files and header files belonging to modules
-OBJECTS=alloc.o IO.o
-HEADERS=alloc.h IO.h
+OBJECTS=alloc.o array_init.o IO.o
+HEADERS=alloc.h array_init.h IO.h
 
 
 ## all: Default target; empty
@@ -24,7 +24,7 @@ all: help
 # DRIVER_HAM1
 
 # #######################################################################################
-# MODULE HAM4
+# MODULE HAM1
 
 # #######################################################################################
 # MODULE ALLOC
@@ -53,7 +53,30 @@ ut_alloc: alloc_test # Runs the testing suite's executable
 .PHONY: ut_alloc_clean
 ut_alloc_clean:
 	rm -f alloc_test.o alloc.o alloc_test
+# #######################################################################################
+# MODULE ARRAY_INIT
 
+# Creation of the object file
+array_init.o: array_init.cc array_init.h
+	${CXX} $(CXXFLAGS) -c array_init.cc -o array_init.o
+
+# Creation of the alloc_test.o object file
+array_init_test.o: array_init_test.cc array_init.h
+	${CXX} $(CXXFLAGS) -c array_init_test.cc -o array_init_test.o
+
+# Linking of the alloc_test.o object and alloc.o object files
+array_init_test: array_init_test.o array_init.o
+	${CXX} array_init_test.o array_init.o -o array_init_test
+
+## ut_array_init: Runs the testing suite for the module array_init
+.PHONY: ut_array_init
+ut_array_init: array_init_test # Runs the testing suite's executable
+	./array_init_test
+
+# Deletion of the object files and executable files pertaining to this unit test.
+.PHONY: ut_array_init_clean
+ut_array_init_clean:
+	rm -f array_init_test.o array_init.o array_init_test
 # #######################################################################################
 # MODULE IO
 
@@ -90,7 +113,8 @@ clean: #driver_ham4_clean
 ## ut_clean: Runs clean rules for all unit tests
 .PHONY: ut_clean
 ut_clean: ut_alloc_clean \
-          IO_clean #\
+          IO_clean \
+          ut_array_init_clean#\
           #ham4_clean
 
 ## help: Shows targets and their descriptions
