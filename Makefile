@@ -12,8 +12,8 @@ LDFLAGS=-L${LAPACKE_LIB} -L${NETCDF_LIB}
 # Flags for linking with libraries (place after all object files)
 LDLIBS=-llapacke -lnetcdf
 # List of object files and header files belonging to modules
-OBJECTS=alloc.o array_init.o IO.o
-HEADERS=alloc.h array_init.h IO.h
+OBJECTS=alloc.o array_init.o IO.o kspace.o
+HEADERS=alloc.h array_init.h IO.h kspace.h
 
 
 ## all: Default target; empty
@@ -74,8 +74,8 @@ ut_array_init: array_init_test # Runs the testing suite's executable
 	./array_init_test
 
 # Deletion of the object files and executable files pertaining to this unit test.
-.PHONY: ut_array_init_clean
-ut_array_init_clean:
+.PHONY: array_init_clean
+array_init_clean:
 	rm -f array_init_test.o array_init.o array_init_test
 # #######################################################################################
 # MODULE IO
@@ -101,6 +101,30 @@ ut_IO: IO_test # Runs the testing suite's executable
 .PHONY: IO_clean
 IO_clean:
 	rm -f IO_test.o IO.o alloc.o IO_test
+# #######################################################################################
+# MODULE KSPACE
+
+# kspace.o object file depends on header file, source file, and all included header files
+kspace.o: kspace.cc kspace.h alloc.h array_init.h
+	${CXX} $(CXXFLAGS) -c kspace.cc -o kspace.o
+
+# kspace_test.o object file depends on source file and header
+kspace_test.o: kspace_test.cc kspace.h
+	${CXX} $(CXXFLAGS) -c kspace_test.cc -o kspace_test.o
+
+# Testing suite executable depends on all linked object files
+kspace_test: kspace_test.o kspace.o alloc.o array_init.o
+	${CXX} kspace_test.o kspace.o alloc.o array_init.o -o kspace_test
+
+## ut_kspace: Runs the testing suite for the module kspace
+.PHONY: ut_kspace
+ut_kspace: kspace_test # Runs the testing suite's executable
+	./kspace_test
+
+# Deletion of the object files and executable files pertaining to this unit test.
+.PHONY: kspace_clean
+kspace_clean:
+	rm -f kspace_test.o kspace.o alloc.o array_init.o kspace_test
 
 # #######################################################################################
 # #######################################################################################
@@ -114,7 +138,8 @@ clean: #driver_ham4_clean
 .PHONY: ut_clean
 ut_clean: ut_alloc_clean \
           IO_clean \
-          ut_array_init_clean#\
+          array_init_clean\
+          kspace_clean#\
           #ham4_clean
 
 ## help: Shows targets and their descriptions
