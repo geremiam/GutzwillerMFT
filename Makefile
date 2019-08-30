@@ -12,8 +12,8 @@ LDFLAGS=-L${LAPACKE_LIB} -L${NETCDF_LIB}
 # Flags for linking with libraries (place after all object files)
 LDLIBS=-llapacke -lnetcdf
 # List of object files and header files belonging to modules
-OBJECTS=alloc.o array_init.o IO.o kspace.o
-HEADERS=alloc.h array_init.h IO.h kspace.h
+OBJECTS=alloc.o array_init.o IO.o kspace.o math.o
+HEADERS=alloc.h array_init.h IO.h kspace.h math.h
 
 
 ## all: Default target; empty
@@ -125,7 +125,30 @@ ut_kspace: kspace_test # Runs the testing suite's executable
 .PHONY: kspace_clean
 kspace_clean:
 	rm -f kspace_test.o kspace.o alloc.o array_init.o kspace_test
+# #######################################################################################
+# MODULE MATH
 
+# Creation of the object file
+math.o: math.cc math.h
+	${CXX} $(CXXFLAGS) -c math.cc -o math.o
+
+# Creation of the math_test.o object file
+math_test.o: math_test.cc math.h
+	${CXX} $(CXXFLAGS) -c math_test.cc -o math_test.o
+
+# Linking of the math_test.o object and math.o object files
+math_test: math_test.o math.o
+	${CXX} math_test.o math.o -o math_test
+
+## ut_math: Runs the testing suite for the module math
+.PHONY: ut_math
+ut_math: math_test # Runs the testing suite's executable
+	./math_test
+
+# Deletion of the object files and executable files pertaining to this unit test.
+.PHONY: math_clean
+math_clean:
+	rm -f math_test.o math.o math_test
 # #######################################################################################
 # #######################################################################################
 
@@ -139,7 +162,8 @@ clean: #driver_ham4_clean
 ut_clean: ut_alloc_clean \
           IO_clean \
           array_init_clean\
-          kspace_clean#\
+          kspace_clean\
+          math_clean#\
           #ham4_clean
 
 ## help: Shows targets and their descriptions
