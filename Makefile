@@ -3,17 +3,25 @@
 
 # Compiler name
 CXX=icpc
-# Flags for including in path search
-INC_FLAGS=-I${LAPACKE_INC} -I${NETCDF_INC}
 # Compiler flags (add -fopenmp to compilation and linking for OpenMP)
-CXXFLAGS=-std=c++14
+CXXFLAGS=-std=c++14 -DMKL_ILP64 -I${MKLROOT}/include
 # Linker flags (add -fopenmp to compilation and linking for OpenMP)
-LDFLAGS=-L${LAPACKE_LIB} -L${NETCDF_LIB}
+LDFLAGS=-L${MKLROOT}/lib -Wl,-rpath,${MKLROOT}/lib -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl
+
+# Compiler name
+#CXX=g++-9
+# Flags for including in path search
+#INC_FLAGS=-I${LAPACKE_INC} -I${NETCDF_INC}
+# Compiler flags (add -fopenmp to compilation and linking for OpenMP)
+#CXXFLAGS=-std=c++14 $(INC_FLAGS)
+# Linker flags (add -fopenmp to compilation and linking for OpenMP)
+#LDLIBS=-llapacke -lnetcdf
 # Flags for linking with libraries (place after all object files)
-LDLIBS=-llapacke -lnetcdf
+#LDFLAGS=-L${LAPACKE_LIB} -L${NETCDF_LIB} $(LDLIBS)
+
 # List of object files and header files belonging to modules
-OBJECTS=alloc.o array_init.o IO.o kspace.o math.o
-HEADERS=alloc.h array_init.h IO.h kspace.h math.h
+OBJECTS=alloc.o array_init.o IO.o kspace.o math.o diag.o
+HEADERS=alloc.h array_init.h IO.h kspace.h math.h diag.h
 
 
 ## all: Default target; empty
@@ -150,6 +158,30 @@ ut_math: math_test # Runs the testing suite's executable
 math_clean:
 	rm -f math_test.o math.o math_test
 # #######################################################################################
+# MODULE DIAG
+
+# Creation of the object file
+diag.o: diag.cc diag.h
+	${CXX} $(CXXFLAGS) -c diag.cc -o diag.o
+
+# Creation of the diag_test.o object file
+diag_test.o: diag_test.cc diag.h
+	${CXX} $(CXXFLAGS) -c diag_test.cc -o diag_test.o
+
+# Linking of the diag_test.o object and diag.o object files
+diag_test: diag_test.o diag.o
+	${CXX} diag_test.o diag.o -o diag_test $(LDFLAGS)
+
+## ut_diag: Runs the testing suite for the module diag
+.PHONY: ut_diag
+ut_diag: diag_test # Runs the testing suite's executable
+	./diag_test
+
+# Deletion of the object files and executable files pertaining to this unit test.
+.PHONY: diag_clean
+diag_clean:
+	rm -f diag_test.o diag.o diag_test
+# #######################################################################################
 # #######################################################################################
 
 ## clean: Removes module object files as well as driver object files and executables
@@ -163,7 +195,8 @@ ut_clean: ut_alloc_clean \
           IO_clean \
           array_init_clean\
           kspace_clean\
-          math_clean#\
+          math_clean\
+          diag_clean#\
           #ham4_clean
 
 ## help: Shows targets and their descriptions
