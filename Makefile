@@ -6,7 +6,8 @@ CXX=icpc
 # Compiler flags (add -fopenmp to compilation and linking for OpenMP)
 CXXFLAGS=-std=c++14 -DMKL_ILP64 -I${MKLROOT}/include
 # Linker flags (add -fopenmp to compilation and linking for OpenMP)
-LDFLAGS=-L${MKLROOT}/lib -Wl,-rpath,${MKLROOT}/lib -lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl
+LDFLAGS=-L${MKLROOT}/lib -Wl,-rpath,${MKLROOT}/lib
+LDLIBS=-lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl
 
 # Compiler name
 #CXX=g++-9
@@ -40,17 +41,17 @@ all: help
 # Creation of the alloc.o object file, which depends on the module's header file 
 # and its source file
 alloc.o: alloc.cc alloc.h
-	${CXX} $(CXXFLAGS) -c alloc.cc -o alloc.o
+	$(CXX) $(CXXFLAGS) -c alloc.cc -o $@
 
 # Creation of the alloc_test.o object file, which depends on its source file and 
 # on the alloc.h header file.
 alloc_test.o: alloc_test.cc alloc.h
-	${CXX} $(CXXFLAGS) -c alloc_test.cc -o alloc_test.o
+	$(CXX) $(CXXFLAGS) -c alloc_test.cc -o $@
 
 # Linking of the alloc_test.o object and alloc.o object files to create 
 # the executable file.
 alloc_test: alloc_test.o alloc.o
-	${CXX} alloc_test.o alloc.o -o alloc_test
+	$(CXX) $(LDFLAGS) alloc_test.o alloc.o -o $@ $(LDLIBS)
 
 ## ut_alloc: Runs the testing suite for the module alloc
 .PHONY: ut_alloc
@@ -66,15 +67,15 @@ ut_alloc_clean:
 
 # Creation of the object file
 array_init.o: array_init.cc array_init.h
-	${CXX} $(CXXFLAGS) -c array_init.cc -o array_init.o
+	$(CXX) $(CXXFLAGS) -c array_init.cc -o $@
 
 # Creation of the alloc_test.o object file
 array_init_test.o: array_init_test.cc array_init.h
-	${CXX} $(CXXFLAGS) -c array_init_test.cc -o array_init_test.o
+	$(CXX) $(CXXFLAGS) -c array_init_test.cc -o $@
 
 # Linking of the alloc_test.o object and alloc.o object files
 array_init_test: array_init_test.o array_init.o
-	${CXX} array_init_test.o array_init.o -o array_init_test
+	$(CXX) $(LDFLAGS) array_init_test.o array_init.o -o $@ $(LDLIBS)
 
 ## ut_array_init: Runs the testing suite for the module array_init
 .PHONY: ut_array_init
@@ -90,15 +91,15 @@ array_init_clean:
 
 # IO.o object file depends on header file, source file, and all included header files
 IO.o: IO.cc IO.h
-	${CXX} $(CXXFLAGS) -c IO.cc -o IO.o
+	$(CXX) $(CXXFLAGS) -c IO.cc -o $@
 
 # IO_test.o object file depends on source file and IO.h header
 IO_test.o: IO_test.cc IO.h alloc.h
-	${CXX} $(CXXFLAGS) -c IO_test.cc -o IO_test.o
+	$(CXX) $(CXXFLAGS) -c IO_test.cc -o $@
 
 # Testing suite executable depends on IO_test.o and IO.o
 IO_test: IO_test.o IO.o alloc.o
-	${CXX} IO_test.o IO.o alloc.o -o IO_test
+	$(CXX) $(LDFLAGS) IO_test.o IO.o alloc.o -o $@ $(LDLIBS)
 
 ## ut_IO: Runs the testing suite for the module IO
 .PHONY: ut_IO
@@ -114,15 +115,15 @@ IO_clean:
 
 # kspace.o object file depends on header file, source file, and all included header files
 kspace.o: kspace.cc kspace.h alloc.h array_init.h
-	${CXX} $(CXXFLAGS) -c kspace.cc -o kspace.o
+	$(CXX) $(CXXFLAGS) -c kspace.cc -o $@
 
 # kspace_test.o object file depends on source file and header
 kspace_test.o: kspace_test.cc kspace.h
-	${CXX} $(CXXFLAGS) -c kspace_test.cc -o kspace_test.o
+	$(CXX) $(CXXFLAGS) -c kspace_test.cc -o $@
 
 # Testing suite executable depends on all linked object files
 kspace_test: kspace_test.o kspace.o alloc.o array_init.o
-	${CXX} kspace_test.o kspace.o alloc.o array_init.o -o kspace_test
+	$(CXX) $(LDFLAGS) kspace_test.o kspace.o alloc.o array_init.o -o $@ $(LDLIBS)
 
 ## ut_kspace: Runs the testing suite for the module kspace
 .PHONY: ut_kspace
@@ -138,15 +139,15 @@ kspace_clean:
 
 # Creation of the object file
 math.o: math.cc math.h
-	${CXX} $(CXXFLAGS) -c math.cc -o math.o
+	$(CXX) $(CXXFLAGS) -c math.cc -o $@
 
 # Creation of the math_test.o object file
 math_test.o: math_test.cc math.h
-	${CXX} $(CXXFLAGS) -c math_test.cc -o math_test.o
+	$(CXX) $(CXXFLAGS) -c math_test.cc -o $@
 
 # Linking of the math_test.o object and math.o object files
 math_test: math_test.o math.o
-	${CXX} math_test.o math.o -o math_test
+	$(CXX) $(LDFLAGS) math_test.o math.o -o $@ $(LDLIBS)
 
 ## ut_math: Runs the testing suite for the module math
 .PHONY: ut_math
@@ -162,15 +163,15 @@ math_clean:
 
 # Creation of the object file
 diag.o: diag.cc diag.h
-	${CXX} $(CXXFLAGS) -c diag.cc -o diag.o
+	$(CXX) $(CXXFLAGS) -c diag.cc -o $@
 
 # Creation of the diag_test.o object file
 diag_test.o: diag_test.cc diag.h
-	${CXX} $(CXXFLAGS) -c diag_test.cc -o diag_test.o
+	$(CXX) $(CXXFLAGS) -c diag_test.cc -o $@
 
 # Linking of the diag_test.o object and diag.o object files
 diag_test: diag_test.o diag.o
-	${CXX} diag_test.o diag.o -o diag_test $(LDFLAGS)
+	$(CXX) $(LDFLAGS) diag_test.o diag.o -o $@ $(LDLIBS)
 
 ## ut_diag: Runs the testing suite for the module diag
 .PHONY: ut_diag
