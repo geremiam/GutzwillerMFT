@@ -1,11 +1,12 @@
 # Makefile
-# Automates the compilation and building of the MFT solver
+# Automates the compilation and building of the MFT solver. See documentation on Implicit Rules.
 
 # Compiler name
-CXX=icpc
-# Compiler flags (add -fopenmp to compilation and linking for OpenMP)
+CXX=icpc# C++ compiler; used in implicit rules.
+CC=$(CXX)# C compiler; is used as the linker in implicit rules.
+# Compiler flags (add -fopenmp to compilation and linking for OpenMP). Used in implicit compiling rules.
 CXXFLAGS=-std=c++14 -DMKL_ILP64 -I${MKLROOT}/include
-# Linker flags (add -fopenmp to compilation and linking for OpenMP)
+# Linker flags (add -fopenmp to compilation and linking for OpenMP). Used in implicit linking rules.
 LDFLAGS=-L${MKLROOT}/lib -Wl,-rpath,${MKLROOT}/lib
 LDLIBS=-lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl
 
@@ -21,186 +22,119 @@ LDLIBS=-lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ld
 #LDFLAGS=-L${LAPACKE_LIB} -L${NETCDF_LIB} $(LDLIBS)
 
 # List of object files and header files belonging to modules
-OBJECTS=alloc.o array_init.o IO.o kspace.o math.o diag.o
-HEADERS=alloc.h array_init.h IO.h kspace.h math.h diag.h
+MODULES=alloc array_init IO kspace math diag
+HEADERS=$(patsubst %,%.h,$(MODULES))
+OBJECTS=$(patsubst %,%.o,$(MODULES))
+TESTS=$(patsubst %,%_test,$(MODULES))
+TESTOBJECTS=$(patsubst %,%_test.o,$(MODULES))
+EXECUTABLES=
 
 
-## all: Default target; empty
+# all: Default target; empty
 .PHONY: all
 all: help
 
 # #######################################################################################
-# DRIVER_HAM1
+# Applications
+# #######################################################################################
+# driver_ham1, driver_ham2...
 
 # #######################################################################################
-# MODULE HAM1
-
+# Modules
 # #######################################################################################
-# MODULE ALLOC
-
-# Creation of the alloc.o object file, which depends on the module's header file 
-# and its source file
 alloc.o: alloc.cc alloc.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Creation of the alloc_test.o object file, which depends on its source file and 
-# on the alloc.h header file.
-alloc_test.o: alloc_test.cc alloc.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Linking of the alloc_test.o object and alloc.o object files to create 
-# the executable file.
-alloc_test: alloc_test.o alloc.o
-	$(CXX) $(LDFLAGS) $^ -o $@ $(LDLIBS)
-
-## ut_alloc: Runs the testing suite for the module alloc
-.PHONY: ut_alloc
-ut_alloc: alloc_test # Runs the testing suite's executable
-	./alloc_test
-
-# Deletion of the object files and executable files pertaining to this unit test.
-.PHONY: ut_alloc_clean
-ut_alloc_clean:
-	rm -f alloc_test.o alloc.o alloc_test
-# #######################################################################################
-# MODULE ARRAY_INIT
-
-# Creation of the object file
 array_init.o: array_init.cc array_init.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Creation of the alloc_test.o object file
-array_init_test.o: array_init_test.cc array_init.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Linking of the alloc_test.o object and alloc.o object files
-array_init_test: array_init_test.o array_init.o
-	$(CXX) $(LDFLAGS) $^ -o $@ $(LDLIBS)
-
-## ut_array_init: Runs the testing suite for the module array_init
-.PHONY: ut_array_init
-ut_array_init: array_init_test # Runs the testing suite's executable
-	./array_init_test
-
-# Deletion of the object files and executable files pertaining to this unit test.
-.PHONY: array_init_clean
-array_init_clean:
-	rm -f array_init_test.o array_init.o array_init_test
-# #######################################################################################
-# MODULE IO
-
-# IO.o object file depends on header file, source file, and all included header files
 IO.o: IO.cc IO.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# IO_test.o object file depends on source file and IO.h header
-IO_test.o: IO_test.cc IO.h alloc.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Testing suite executable depends on IO_test.o and IO.o
-IO_test: IO_test.o IO.o alloc.o
-	$(CXX) $(LDFLAGS) $^ -o $@ $(LDLIBS)
-
-## ut_IO: Runs the testing suite for the module IO
-.PHONY: ut_IO
-ut_IO: IO_test # Runs the testing suite's executable
-	./IO_test
-
-# Deletion of the object files and executable files pertaining to this unit test.
-.PHONY: IO_clean
-IO_clean:
-	rm -f IO_test.o IO.o alloc.o IO_test
-# #######################################################################################
-# MODULE KSPACE
-
-# kspace.o object file depends on header file, source file, and all included header files
 kspace.o: kspace.cc kspace.h alloc.h array_init.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# kspace_test.o object file depends on source file and header
-kspace_test.o: kspace_test.cc kspace.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Testing suite executable depends on all linked object files
-kspace_test: kspace_test.o kspace.o alloc.o array_init.o
-	$(CXX) $(LDFLAGS) $^ -o $@ $(LDLIBS)
-
-## ut_kspace: Runs the testing suite for the module kspace
-.PHONY: ut_kspace
-ut_kspace: kspace_test # Runs the testing suite's executable
-	./kspace_test
-
-# Deletion of the object files and executable files pertaining to this unit test.
-.PHONY: kspace_clean
-kspace_clean:
-	rm -f kspace_test.o kspace.o alloc.o array_init.o kspace_test
-# #######################################################################################
-# MODULE MATH
-
-# Creation of the object file
 math.o: math.cc math.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Creation of the math_test.o object file
-math_test.o: math_test.cc math.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
-
-# Linking of the math_test.o object and math.o object files
-math_test: math_test.o math.o
-	$(CXX) $(LDFLAGS) $^ -o $@ $(LDLIBS)
-
-## ut_math: Runs the testing suite for the module math
-.PHONY: ut_math
-ut_math: math_test # Runs the testing suite's executable
-	./math_test
-
-# Deletion of the object files and executable files pertaining to this unit test.
-.PHONY: math_clean
-math_clean:
-	rm -f math_test.o math.o math_test
-# #######################################################################################
-# MODULE DIAG
-
-# Creation of the object file
 diag.o: diag.cc diag.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Creation of the diag_test.o object file
+alloc_test.o: alloc_test.cc alloc.h
+array_init_test.o: array_init_test.cc array_init.h
+IO_test.o: IO_test.cc IO.h alloc.h
+kspace_test.o: kspace_test.cc kspace.h
+math_test.o: math_test.cc math.h
 diag_test.o: diag_test.cc diag.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# Linking of the diag_test.o object and diag.o object files
+
+# #######################################################################################
+# Tests
+# #######################################################################################
+alloc_test: alloc_test.o alloc.o
+array_init_test: array_init_test.o array_init.o
+IO_test: IO_test.o IO.o alloc.o
+kspace_test: kspace_test.o kspace.o alloc.o array_init.o
+math_test: math_test.o math.o
 diag_test: diag_test.o diag.o
-	$(CXX) $(LDFLAGS) $^ -o $@ $(LDLIBS)
 
-## ut_diag: Runs the testing suite for the module diag
+
+# #######################################################################################
+# Test targets
+# #######################################################################################
+## ut_alloc
+.PHONY: ut_alloc
+ut_alloc: alloc_test
+	./$<
+## ut_array_init
+.PHONY: ut_array_init
+ut_array_init: array_init_test
+	./$<
+## ut_IO
+.PHONY: ut_IO
+ut_IO: IO_test
+	./$<
+## ut_kspace
+.PHONY: ut_kspace
+ut_kspace: kspace_test
+	./$<
+## ut_math
+.PHONY: ut_math
+ut_math: math_test
+	./$<
+## ut_diag
 .PHONY: ut_diag
-ut_diag: diag_test # Runs the testing suite's executable
-	./diag_test
+ut_diag: diag_test
+	./$<
 
-# Deletion of the object files and executable files pertaining to this unit test.
-.PHONY: diag_clean
-diag_clean:
-	rm -f diag_test.o diag.o diag_test
+
 # #######################################################################################
+# Clean rules
 # #######################################################################################
 
-## clean: Removes module object files as well as driver object files and executables
-.PHONY: clean
-clean: #driver_ham4_clean
+.PHONY: clean_executables
+clean_executables:
+	rm -f $(EXECUTABLES)
+
+.PHONY: clean_objectfiles
+clean_objectfiles:
 	rm -f $(OBJECTS)
 
-## ut_clean: Runs clean rules for all unit tests
-.PHONY: ut_clean
-ut_clean: ut_alloc_clean \
-          IO_clean \
-          array_init_clean\
-          kspace_clean\
-          math_clean\
-          diag_clean#\
-          #ham4_clean
+.PHONY: clean_unittests
+clean_unittests:
+	rm -f $(TESTS) $(TESTOBJECTS)
+
+## softclean: Removes object files and unit tests
+.PHONY: softclean
+softclean: clean_objectfiles clean_unittests
+
+## clean: Removes everything but source files
+.PHONY: clean
+clean: clean_executables clean_objectfiles clean_unittests
 
 ## help: Shows targets and their descriptions
 .PHONY: help
 help: Makefile
 	@sed -n 's/^##//p' $<
+
+
+# #######################################################################################
+# Notes on implicit rules
+# #######################################################################################
+
+# Best guess for the implicit rule compiling .cc into .o (object) files:
+# %.o : %.cc (...)
+#	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+# Note that the first prerequisite is the source code.
+# Best guess for the implicit rule linking .o files into executables:
+# % : (...)
+#	$(CC) $(LDFLAGS) $^ -o $@ $(LDLIBS)
