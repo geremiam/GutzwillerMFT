@@ -22,7 +22,7 @@ LDLIBS=-lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ld
 #LDFLAGS=-L${LAPACKE_LIB} -L${NETCDF_LIB} $(LDLIBS)
 
 # List of object files and header files belonging to modules
-MODULES=alloc array_init IO kspace math diag
+MODULES=alloc array_init IO kspace math diag ham1
 HEADERS=$(patsubst %,%.h,$(MODULES))
 OBJECTS=$(patsubst %,%.o,$(MODULES))
 TESTS=$(patsubst %,%_test,$(MODULES))
@@ -48,6 +48,7 @@ IO.o: IO.cc IO.h
 kspace.o: kspace.cc kspace.h alloc.h array_init.h
 math.o: math.cc math.h
 diag.o: diag.cc diag.h
+ham1.o: ham1.cc $(HEADERS)
 
 alloc_test.o: alloc_test.cc alloc.h
 array_init_test.o: array_init_test.cc array_init.h
@@ -55,6 +56,7 @@ IO_test.o: IO_test.cc IO.h alloc.h
 kspace_test.o: kspace_test.cc kspace.h
 math_test.o: math_test.cc math.h
 diag_test.o: diag_test.cc diag.h
+ham1_test.o: ham1_test.cc alloc.h IO.h
 
 
 # #######################################################################################
@@ -66,6 +68,7 @@ IO_test: IO_test.o IO.o alloc.o
 kspace_test: kspace_test.o kspace.o alloc.o array_init.o
 math_test: math_test.o math.o
 diag_test: diag_test.o diag.o
+ham1_test: ham1_test.o $(OBJECTS)
 
 
 # #######################################################################################
@@ -94,6 +97,10 @@ ut_math: math_test
 ## ut_diag
 .PHONY: ut_diag
 ut_diag: diag_test
+	./$<
+## ut_ham1
+.PHONY: ut_ham1
+ut_ham1: ham1_test
 	./$<
 
 
