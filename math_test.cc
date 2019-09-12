@@ -67,6 +67,20 @@ void compare_Fermi_functions()
     }
 }
 
+double foo(const double x)
+{
+    return x*x - 1.5;
+}
+
+void bisec_test()
+{
+    const double a_in = -1.23;
+    const double b_in = 1.22;
+    const double output = bisec(a_in, b_in, foo);
+    
+    std::cout << "output = " << output << std::endl;
+}
+
 // **************************************************************************************
 
 void test_nF0()
@@ -107,9 +121,11 @@ int main()
 {
     //compare_Fermi_functions();
     
-    test_nF0();
+    //test_nF0();
     
-    test_nF();
+    //test_nF();
+    
+    bisec_test();
     
     return 0;
 }

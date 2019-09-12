@@ -49,3 +49,66 @@ float nF(const float T, const float energy)
     const double ans = 1./( 1. + std::exp(arg) );
     return (float)(ans);
 }
+
+
+double bisec(const double a_in, const double b_in, double foo(const double), const bool show_output)
+{
+    // The chemical potential is found using the bisection method. Note that this doesn't 
+    // work if num_electrons is 0 or num_states, because in that case the function has no 
+    // root (it tends to zero asymptotically in mu). Uses 100 times machine epsilon as 
+    // relative tolerance.
+    
+    assert(a_in<b_in); // Make sure that a < b.
+    assert(foo(a_in)*foo(b_in)<0.); // Make sure there is a zero between the two inputs.
+    const bool increasing = (foo(a_in) < foo(b_in)); // Determine if the function is increasing
+    
+    // Starting values for a and b. Choose them slightly outside the energy range to be safe.
+    double a = a_in;
+    double b = b_in;
+    
+    int counter = 0;
+    bool converged = false;
+    
+    do // Update via Newton's method
+    {
+      counter++; // Increment 'counter' by one
+      
+      const double midpoint = (a+b)/2.; // Get the midpoint between a and b
+      // Find the image of the function at the midpoint
+      const double image = foo(midpoint);
+      
+      if (show_output)
+          std::cout << "a = " << a << ", b = " << b << ", b-a = " << b-a << "\t"
+                    << "midpoint = " << midpoint << ", image = " << image;
+      
+      if (image==0.)
+      {
+        a = midpoint; // If image is 0, the loop terminates and the value is returned.
+        b = midpoint;
+      }
+        
+      else if (image<0.)
+      {
+        if (increasing)
+          a = midpoint; // If 'image' is negative, 'midpoint' is the new 'a'
+        else
+          b = midpoint;
+      }
+      else if (image>0.)
+      {
+        if (increasing)
+          b = midpoint; // If 'image' is positive, 'midpoint' is the new 'b'
+        else
+          a = midpoint;
+      }
+      
+      const double tolerance = 100. * eps_double * std::abs((a+b))/2.;//eps gives rel. tol.
+      if (show_output)
+          std::cout << "\ttolerance = " << tolerance << std::endl;
+      if (std::abs((b-a))<tolerance)
+        converged = true; // Check if the half difference is below tolerance
+      
+    } while (!converged); // The looping stops if convergence has been reached.
+    
+    return (b+a)/2.; // Take mu to be the average of a and b.
+}
