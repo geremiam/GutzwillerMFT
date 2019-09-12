@@ -3,117 +3,87 @@
 #include <iomanip> // For the function std::setprecision()
 #include <complex> // For complex numbers
 #include <cmath> // For the constant M_PI
-#include "IO.h" // For printing matrices
-#include "alloc.h"
+#include "IO.h"
 #include "ham1.h"
+using std::complex;
 
-void Assign_ham_test()
+void MFs_t_test_1()
 {
-    std::complex<double>** matrix = Alloc2D_z(8, 8);
-    std::cout << "\nmatrix = " << std::endl;
-    PrintMatrix(8,8,matrix, std::cout);
-    std::cout << std::endl;
+    // Construct without arguments
+    MFs_t MFs;
     
-    const int ka_pts = 10;
-    const int kb_pts = 10;
-    const int kc_pts = 10;
+    MFs.chi_s = {1., 2.};
     
-    ham1_t ham1(ka_pts, kb_pts, kc_pts);
+    std::cout << MFs << std::endl;
+}
+void MFs_t_test_2()
+{
+    // Construct with arguments
+    MFs_t MFs(1., 2., 3., 4.);
     
-    std::cout << "num_states = " << ham1.num_states << std::endl;
-    std::cout << "rho_ = " << ham1.rho_ << std::endl;
-    std::cout << "filled_states = " << ham1.filled_states << std::endl;
+    std::cout << MFs << std::endl;
+}
+void MFs_t_test_3()
+{
+    // Construct an array
     
-    const double ka=0.1*M_PI, kb=0.1*M_PI, kc=0.1*M_PI;
-    ham1.Assign_ham(ka, kb, kc, matrix);
-    std::cout << "\nAfter assignment, matrix = " << std::endl;
-    PrintMatrix(8,8,matrix, std::cout);
-    std::cout << std::endl;
+    complex<double>*const array = new complex<double> [4];
     
-    /*
-    ham1.Assign_ham(0.,0.);
-    PrintMatrix(8,8,ham1.ham_array,std::cout);
+    array[0] = {0.,1.};
+    array[1] = {0.,2.};
+    array[2] = {0.,3.};
+    array[3] = {0.,4.};
     
-    std::cout << std::endl;
+    MFs_t MFs(array);
     
-    ham1.U = 0.5;
-    ham1.Assign_ham(0.,0.);
-    PrintMatrix(8,8,ham1.ham_array,std::cout);
-    */
-    Dealloc2D(matrix);
+    std::cout << MFs << std::endl;
+    
+    // Test the method MFs_to_array 
+    complex<double> x [4] = {0.};
+    MFs.MFs_to_array(x);
+    PrintVector(4, x, std::cout);
+    
+    delete [] array;
+}
+void MFs_t_test_4()
+{ // Testing assignment and copying
+    // Construct with arguments
+    MFs_t MFs(-1., 2., -3., 4.);
+    std::cout << "MFs:\t" << MFs << std::endl;
+    
+    MFs_t MF1(MFs);
+    std::cout << "MF1:\t" << MF1 << std::endl;
+    
+    MFs_t MF2 = MFs;
+    std::cout << "MF2:\t" << MF2 << std::endl;
+}
+void MFs_t_test_5()
+{ // Testing assignment and copying
+    // Construct with arguments
+    MFs_t MFs(1., 2., 3., 4.);
+    std::cout <<  "MFs = \t" <<  MFs << std::endl;
+    std::cout << "-MFs = \t" << -MFs << std::endl;
+    std::cout <<  "MFs = \t" <<  MFs << std::endl;
+    std::cout << "MFs*0.5 = \t" << MFs*0.5 << std::endl;
+    std::cout <<  "MFs = \t" <<  MFs << std::endl;
+    
+    MFs_t MF2 = MFs+MFs;
+    std::cout << "MF2 = \t" << MF2 << std::endl;
+    std::cout <<  "MFs = \t" <<  MFs << std::endl;
+    
+    MFs_t MF3 = (MFs*1.2 + MF2)*0.1;
+    std::cout <<  "MFs = \t" <<  MF3 << std::endl;
+    const bool is_small = MF3.check_bound(1.3);
+    std::cout << is_small << std::endl;
 }
 
-void test_ComputeMFs()
-{
-    const int ka_pts = 62;
-    const int kb_pts = 62;
-    const int kc_pts = 62;
-    
-    ham1_t ham1(ka_pts, kb_pts, kc_pts);
-    ham1.set_nonzerotemp(1.e-1);
-    //ham1.set_zerotemp();
-    
-    /*ham1.assign_rho(0.7);
-    ham1.V1_ = 40.;
-    ham1.V1p_ = 30.;
-    ham1.V2_ = 6.;
-    ham1.V3_ = 8.;
-    
-    ham1.rho_s_[0] = 0.2;    ham1.rho_a_[0] = 0.1;
-    ham1.rho_s_[1] = 0.3;    ham1.rho_a_[1] = 0.1;
-    ham1.rho_s_[2] = 0.0;    ham1.rho_a_[2] = 0.0;
-    ham1.rho_s_[3] = 0.0;    ham1.rho_a_[3] = 0.0;*/
-    
-    std::cout << "num_states: " << ham1.num_states << std::endl;
-    std::cout << "filled_states: " << ham1.filled_states << std::endl;
-    
-    double rho_s_out [4] = {0.};
-    double rho_a_out [4] = {0.};
-    
-    ham1.ComputeMFs_old(rho_s_out, rho_a_out);
-    for (int i=0; i<4; ++i) {
-      std::cout << "rho_s_out[" << i << "] = " << rho_s_out[i] << "\t"
-                << "rho_a_out[" << i << "] = " << rho_a_out[i] << std::endl;
-    }
-    
-    ham1.ComputeMFs(rho_s_out, rho_a_out);
-    for (int i=0; i<4; ++i) {
-      std::cout << "rho_s_out[" << i << "] = " << rho_s_out[i] << "\t"
-                << "rho_a_out[" << i << "] = " << rho_a_out[i] << std::endl;
-    }
-}
 
-void test_FixedPoint()
-{
-    const int ka_pts = 62;
-    const int kb_pts = 62;
-    const int kc_pts = 62;
-    
-    ham1_t ham1(ka_pts, kb_pts, kc_pts);
-    ham1.set_zerotemp(); // In this case, calculates EF from sorting
-    //ham1.set_nonzerotemp(1.e-2); // In this case, calculates mu from bisection method
-    
-    int num_loops;
-    const bool with_output = true;
-    
-    ham1.assign_rho(0.7);
-    ham1.V1_ = 40.;
-    ham1.V1p_ = 30.;
-    ham1.V2_ = 6.;
-    ham1.V3_ = 8.;
-    
-    ham1.FixedPoint(&num_loops, with_output);
-    
-    std::cout << "num_loops = " << num_loops << std::endl;
-}
+
+
+
 
 int main()
 {
-    //Assign_ham_test();
-    
-    //test_ComputeMFs();
-    
-    test_FixedPoint();
-    
+    MFs_t_test_5();
     return 0;
 }

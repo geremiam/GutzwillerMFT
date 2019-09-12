@@ -56,7 +56,7 @@ IO_test.o: IO_test.cc IO.h alloc.h
 kspace_test.o: kspace_test.cc kspace.h
 math_test.o: math_test.cc math.h
 diag_test.o: diag_test.cc diag.h
-ham1_test.o: ham1_test.cc alloc.h IO.h
+ham1_test.o: ham1_test.cc ham1.h IO.h kspace.h
 
 
 # #######################################################################################
