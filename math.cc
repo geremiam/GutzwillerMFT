@@ -58,8 +58,12 @@ double bisec(const double a_in, const double b_in, double foo(const double), con
     // root (it tends to zero asymptotically in mu). Uses 100 times machine epsilon as 
     // relative tolerance.
     
-    assert(a_in<b_in); // Make sure that a < b.
-    assert(foo(a_in)*foo(b_in)<0.); // Make sure there is a zero between the two inputs.
+    // Make sure that a < b.
+    if ( !(a_in<b_in) )
+      std::cout << "WARNING: function \"bisec\" requires a_in<b_in." << std::endl;
+    // Make sure there is a zero between the two inputs.
+    if ( !(foo(a_in)*foo(b_in)<0.) )
+      std::cout << "WARNING: the function does not change sign between a_in and b_in." << std::endl;
     const bool increasing = (foo(a_in) < foo(b_in)); // Determine if the function is increasing
     
     // Starting values for a and b. Choose them slightly outside the energy range to be safe.
