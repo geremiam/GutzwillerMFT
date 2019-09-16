@@ -19,13 +19,14 @@ private:
     const int b2_pts_;
     
     // Reciprocal lattice vectors
-    const double*const b1_=NULL;
-    const double*const b2_=NULL;
+    double b1_[2]={0.};
+    double b2_[2]={0.};
     
     const int bands_num_; // Number of bands
     
-    const bool with_output_; // Whether or not to silence diagnostic output
-    const bool with_evecs_; // Whether or not to reserve memory for evecs
+    const bool show_output_; // Whether or not to silence diagnostic output
+    const bool reserve_evals_; // Whether or not to reserve memory for evals
+    const bool reserve_evecs_; // Whether or not to reserve memory for evecs
     
     void MonkhorstPack_assign(); // Assign MP momenta to the grids
     
@@ -35,12 +36,13 @@ public:
     /* All momentum indices are collapsed into one; the function k_i is used to get it. */
     double*const kx_grid=NULL; // Only index is momentum
     double*const ky_grid=NULL; // Only index is momentum
-    double*const*const energies=NULL; // First index is momentum, second is band
+    double*const* energies=NULL; // First index is momentum, second is band
     std::complex<double>*const*const* evecs=NULL; // Firs index is momentum; second and third are matrix indices
     
     // Constructor declaration
     kspace_t(const double* b1, const double* b2, const int b1_pts, const int b2_pts, 
-             const int bands_num, const bool with_output=false, const bool with_evecs=false);
+             const int bands_num=0, const bool reserve_evals=false, const bool reserve_evecs=false, 
+             const bool show_output=false);
     ~kspace_t(); // Destructor declaration
     
     // Return the global momentum index from the indices along each axis

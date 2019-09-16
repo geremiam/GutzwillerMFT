@@ -6,22 +6,29 @@ void kspace_t_test()
 {
     const int bands_num=2;
     const bool with_output=false;
+    const bool with_evals=true;
     const bool with_evecs=true;
     
     const double b1[2] = {1., 0.};
     const double b2[2] = {0., 1.};
     
+    // Addresses of arrays
+    std::cout << "b1 = " << b1 << std::endl;
+    std::cout << "b2 = " << b2 << std::endl;
+    
     const int b1_pts = 3;
     const int b2_pts = 4;
     
-    kspace_t Inst1(b1, b2, b1_pts, b2_pts, bands_num, with_output, with_evecs);
+    kspace_t Inst1(b1, b2, b1_pts, b2_pts, bands_num, with_evals, with_evecs, with_output);
     
-    /*
-    std::cout << "Inst1.b1_pts_ = " << Inst1.b1_pts_ << std::endl;
-    std::cout << "Inst1.b2_pts_ = " << Inst1.b2_pts_ << std::endl;
-    std::cout << "Inst1.bands_num_ = " << Inst1.bands_num_ << std::endl;
-    */
+    // Show parameters
+//     std::cout << "Inst1.b1_ = " << Inst1.b1_ << std::endl;
+//     std::cout << "Inst1.b2_ = " << Inst1.b2_ << std::endl;
+//     std::cout << "Inst1.b1_pts_ = " << Inst1.b1_pts_ << std::endl;
+//     std::cout << "Inst1.b2_pts_ = " << Inst1.b2_pts_ << std::endl;
+//     std::cout << "Inst1.bands_num_ = " << Inst1.bands_num_ << std::endl;
     
+    // Show momentum grids
     std::cout << "Inst1.kx_grid = " << std::endl;
     for (int i=0; i<b1_pts; ++i)
     {

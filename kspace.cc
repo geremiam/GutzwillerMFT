@@ -9,33 +9,49 @@
 
 // Internal subroutines
 
-
 // Constructor implementation
 kspace_t::kspace_t(const double* b1, const double* b2, const int b1_pts, const int b2_pts, 
-                   const int bands_num, const bool with_output, const bool with_evecs)
+                   const int bands_num, const bool reserve_evals, const bool reserve_evecs, 
+                   const bool show_output)
     :bands_num_(bands_num), 
-    b1_(b1), 
-    b2_(b2), 
     b1_pts_(b1_pts), 
     b2_pts_(b2_pts),
     kx_grid(new double [b1_pts*b2_pts]), 
     ky_grid(new double [b1_pts*b2_pts]), 
-    energies(Alloc2D_d(b1_pts*b2_pts, bands_num)),
-    with_output_(with_output), 
-    with_evecs_(with_evecs)
+    reserve_evals_(reserve_evals),
+    reserve_evecs_(reserve_evecs),
+    show_output_(show_output)
 {
-    if (with_output) std::cout << "kspace_t instance created.\n";
-    // Assign MK momentum values
-    MonkhorstPack_assign();
-    
-    // The energies grid is initialized to zero
-    ValInitArray(b1_pts*b2_pts*bands_num, &(energies[0][0]), 0.);
-    
-    if (with_evecs) // It is convenient for evecs to be a 3D array.
+    for (int i=0; i<2; ++i) // Copy recip. lattice vectors to class members.
     {
-      evecs = Alloc3D_z(b1_pts*b2_pts, bands_num, bands_num);
-      ValInitArray(b1_pts*b2_pts*bands_num*bands_num, &(evecs[0][0][0]), {0.,0.});
+      b1_[i] = b1[i];
+      b2_[i] = b2[i];
     }
+    
+    MonkhorstPack_assign(); // Assign MK momentum values
+    
+    if (reserve_evals)
+    {
+      if (bands_num>0)
+      {
+        energies = Alloc2D_d(b1_pts*b2_pts, bands_num);
+        ValInitArray(b1_pts*b2_pts*bands_num, &(energies[0][0]), 0.);
+      }
+      else
+        std::cout << " WARNING: evals not reserved because bands_num is invalid." << std::endl;
+    }
+    if (reserve_evecs) // It is convenient for evecs to be a 3D array.
+    {
+      if (bands_num>0)
+      {
+        evecs = Alloc3D_z(b1_pts*b2_pts, bands_num, bands_num);
+        ValInitArray(b1_pts*b2_pts*bands_num*bands_num, &(evecs[0][0][0]), {0.,0.});
+      }
+      else
+        std::cout << " WARNING: evecs not reserved because bands_num is invalid." << std::endl;
+    }
+    if (show_output)
+      std::cout << "kspace_t instance created.\n";
 }
 
 // Destructor implementation
@@ -43,10 +59,12 @@ kspace_t::~kspace_t()
 {
     delete [] kx_grid;
     delete [] ky_grid;
-    Dealloc2D(energies);
-    if (with_evecs_)
+    if (reserve_evals_ && (bands_num_>0))
+      Dealloc2D(energies);
+    if (reserve_evecs_ && (bands_num_>0))
       Dealloc3D(evecs, b1_pts_*b2_pts_);
-    if (with_output_) std::cout << "kspace_t instance deleted.\n";
+    if (show_output_)
+      std::cout << "kspace_t instance deleted.\n";
 }
 
 int kspace_t::k_i(const int k1_ind, const int k2_ind) const
