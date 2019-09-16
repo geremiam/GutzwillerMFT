@@ -53,10 +53,8 @@ float nF(const float T, const float energy)
 
 double bisec(const double a_in, const double b_in, double foo(const double), const bool show_output)
 {
-    // The chemical potential is found using the bisection method. Note that this doesn't 
-    // work if num_electrons is 0 or num_states, because in that case the function has no 
-    // root (it tends to zero asymptotically in mu). Uses 100 times machine epsilon as 
-    // relative tolerance.
+    // The chemical potential is found using the bisection method. Uses 100 times machine 
+    // epsilon as relative tolerance.
     
     // Make sure that a < b.
     if ( !(a_in<b_in) )

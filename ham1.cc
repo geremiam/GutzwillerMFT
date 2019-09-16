@@ -5,6 +5,7 @@
 #include <iomanip> // For the function std::setprecision()
 #include <sstream> // For stringstreams
 #include <complex> // Needed to import alloc.h
+#include <cassert> // For assert function
 #include "alloc.h" // Allocation/deallocation of arrays
 #include "array_init.h" // Initialization of arrays
 #include "math.h" // Various math functions
@@ -20,36 +21,11 @@ using std::complex;
 using std::abs;
 
 
-double Set_mixratio(const int counter, const int*const counter_vals, const double*const mixratio_vals, const int len, const bool with_output=false)
-{
-    /* When 'counter' reaches one of the values in 'counter_values', the corresponding 
-    entry of 'mixratio_values' is returned. Values in counter_vals must be strictly increasing.*/
-    double mixratio = 1.; // Starting value should be 1.
-    for (int i=0; i<len; ++i)
-    {
-        if (counter>=counter_vals[i]) 
-            mixratio = mixratio_vals[i];
-        if (counter==counter_vals[i]) 
-        {
-            if (with_output)
-                std::cout << "\n\t Counter has reached " << counter
-                          << ".\tmixratio = " << mixratio << "\n\n";
-        }
-    }
-    
-    return mixratio;
-}
-
-
 // **************************************************************************************
 // Implementation of the class MFs_t
 MFs_t::MFs_t(complex<double> chi_s_, complex<double> chi_d_, complex<double> Delta_s_, complex<double> Delta_d_)
     :chi_s(chi_s_), chi_d(chi_d_), Delta_s(Delta_s_), Delta_d(Delta_d_)
 {}
-MFs_t::MFs_t(const complex<double>*const MFs_array)
-{
-    MFs_from_array(MFs_array);
-}
 void MFs_t::MFs_from_array(const complex<double>*const MFs_array)
 {
     chi_s = MFs_array[0];
@@ -87,8 +63,13 @@ MFs_t::operator const char* () // Allows output as a string stream.
 }
 MFs_t MFs_t::operator + (const MFs_t& MFs_toadd) // Addition of two instances
 {
-    MFs_t newMFs(  chi_s+MFs_toadd.chi_s,     chi_d+MFs_toadd.chi_d, 
-                 Delta_s+MFs_toadd.Delta_s, Delta_d+MFs_toadd.Delta_d);
+    MFs_t newMFs(chi_s+MFs_toadd.chi_s, chi_d+MFs_toadd.chi_d, Delta_s+MFs_toadd.Delta_s, Delta_d+MFs_toadd.Delta_d);
+    return newMFs;
+}
+MFs_t MFs_t::operator - (const MFs_t& MFs_toadd) // Subtraction of one instance from another
+{
+    //MFs_t newMFs = *this + (-MFs_toadd);
+    MFs_t newMFs(chi_s-MFs_toadd.chi_s, chi_d-MFs_toadd.chi_d, Delta_s-MFs_toadd.Delta_s, Delta_d-MFs_toadd.Delta_d);
     return newMFs;
 }
 MFs_t MFs_t::operator * (const double factor) // Multiplication by a double
@@ -96,18 +77,116 @@ MFs_t MFs_t::operator * (const double factor) // Multiplication by a double
     MFs_t newMFs(factor*chi_s, factor*chi_d, factor*Delta_s, factor*Delta_d);
     return newMFs;
 }
-MFs_t MFs_t::operator - ()
+MFs_t MFs_t::operator - () // Negation
 {
     MFs_t newMFs = *this * -1.; // Invokes copy assignment operator
     return newMFs;
 }
 
 // **************************************************************************************
+// Implementation of the class FPparams_t
+FPparams_t::FPparams_t(const double tol, const int loops_lim, const int mixing_vals_len, const int*const counter_vals, const double*const mixing_vals)
+    :tol_(tol), loops_lim_(loops_lim), mixing_vals_len_(mixing_vals_len)
+{
+    // Check some basic stuff.
+    assert(counter_vals!=NULL);
+    assert(mixing_vals!=NULL);
+    assert(mixing_vals_len>0);
+    assert(loops_lim>0);
+    assert(tol>0.);
+    
+    counter_vals_ = new int    [mixing_vals_len_];
+    mixing_vals_  = new double [mixing_vals_len_];
+    
+    for (int i=0; i<mixing_vals_len_; ++i)
+    {
+      counter_vals_[i] = counter_vals[i];
+      mixing_vals_[i]  = mixing_vals[i];
+    }
+    
+    // Check that values provided are strictly increasing.
+    for (int i=0; i<mixing_vals_len_-1; ++i)
+    {
+      assert(counter_vals_[i]<counter_vals_[i+1]);
+      assert(mixing_vals_[i]>mixing_vals_[i+1]);
+    }
+}
+FPparams_t::~FPparams_t()
+{
+    delete [] counter_vals_;
+    delete [] mixing_vals_;
+}
+FPparams_t::FPparams_t(const FPparams_t& copy_source) // Copy constructor
+    :tol_(copy_source.tol_), loops_lim_(copy_source.loops_lim_), mixing_vals_len_(copy_source.mixing_vals_len_)
+{
+    counter_vals_ = new int    [mixing_vals_len_];
+    mixing_vals_  = new double [mixing_vals_len_];
+    
+    for (int i=0; i<mixing_vals_len_; ++i)
+    {
+      counter_vals_[i] = copy_source.counter_vals_[i];
+      mixing_vals_[i]  = copy_source.mixing_vals_[i];
+    }
+}
+double FPparams_t::mixratio(const int counter, const bool silent) const
+{
+    /* When 'counter' reaches one of the values in 'counter_values', the corresponding 
+    entry of 'mixratio_values' is returned. Values in counter_vals must be strictly increasing.*/
+    double mixratio = 1.; // Starting value should be 1.
+    for (int i=0; i<mixing_vals_len_; ++i)
+    {
+        if (counter>=counter_vals_[i]) 
+            mixratio = mixing_vals_[i];
+        if (counter==counter_vals_[i]) 
+        {
+            if (!silent)
+                std::cout << "\n\t Counter has reached " << counter
+                          << ".\tmixratio = " << mixratio << "\n\n";
+        }
+    }
+    
+    return mixratio;
+}
+FPparams_t::operator const char* ()
+{
+    std::ostringstream output;
+    output << "tol_ = " << tol_ << ", loops_lim_ = " << loops_lim_ << ", output_text_ = " << output_text_ << ", mixing_vals_len_ = " << mixing_vals_len_ << ",";
+    output << "\ncounter_vals_ = \n";
+    for (int i=0; i<mixing_vals_len_; ++i)
+        output << counter_vals_[i] << " ";
+    output << "\nmixing_vals_ = \n";
+    for (int i=0; i<mixing_vals_len_; ++i)
+        output << mixing_vals_[i] << " ";
+    output_text_ = output.str();
+    return output_text_.c_str();
+}
+// **************************************************************************************
 //Implementation of the class ham1_t
 void ham1_t::resetMFs()
 {
     // Set MFs to specified values.
-    MFs = MFs_initial;
+    MFs_ = MFs_initial_;
+}
+
+double ham1_t::chempot_utility(const double mu_local) const
+{
+    // Function whose zero gives the "correct" value of mu.
+    // Remember, std::norm() is square magnitude.
+    double ans = 0.;
+    
+    double      E_cal=0.;
+    double          u=0.;
+    complex<double> v=0.;
+    for (int i=0; i<k1_pts_; ++i)
+      for (int j=0; j<k2_pts_; ++j)
+      {
+        const double kx = kspace.kx_grid[kspace.k_i(i,j)];
+        const double ky = kspace.ky_grid[kspace.k_i(i,j)];
+        diag(kx, ky, mu_local, E_cal, u, v); // Assign values to u, v, and E_cal.
+        ans += (std::norm(u) - std::norm(v)) * (2.*nF(T_,E_cal) - 1.) / num_unit_cells;
+      }
+    ans -= x_;
+    return ans;
 }
 
 double ham1_t::bisec1(const double a_in, const double b_in, const bool show_output) const
@@ -116,8 +195,8 @@ double ham1_t::bisec1(const double a_in, const double b_in, const bool show_outp
     // epsilon as relative tolerance.
     
     assert(a_in<b_in); // Make sure that a < b.
-    assert(utility(a_in)*utility(b_in)<0.); // Make sure there is a zero between the two inputs.
-    const bool increasing = (utility(a_in) < utility(b_in)); // Determine if the function is increasing
+    assert(chempot_utility(a_in)*chempot_utility(b_in)<0.); // Make sure there is a zero between the two inputs.
+    const bool increasing = (chempot_utility(a_in) < chempot_utility(b_in)); // Determine if the function is increasing
     
     // Starting values for a and b. Choose them slightly outside the energy range to be safe.
     double a = a_in;
@@ -132,10 +211,10 @@ double ham1_t::bisec1(const double a_in, const double b_in, const bool show_outp
       
       const double midpoint = (a+b)/2.; // Get the midpoint between a and b
       // Find the image of the function at the midpoint
-      const double image = utility(midpoint);
+      const double image = chempot_utility(midpoint);
       
       if (show_output)
-          std::cout << "a = " << a << ", b = " << b << ", a-b = " << a-b << "\t"
+          std::cout << "a = " << a << ", b = " << b << ", b-a = " << b-a << "\t"
                     << "midpoint = " << midpoint << ", image = " << image;
       
       if (image==0.)
@@ -170,15 +249,23 @@ double ham1_t::bisec1(const double a_in, const double b_in, const bool show_outp
     return (b+a)/2.; // Take mu to be the average of a and b.
 }
 
+double ham1_t::chempot()
+{
+    // Finds the chemical potential using a bisection method. To be called before computing the MFs.
+    const double max = 5. * (abs(t_) + abs(tp_) + abs(J_));
+    const double mu_out = bisec1(-max, max);
+    return mu_out;
+}
+
 void ham1_t::diag(const double kx, const double ky, const double mu_local, double& E_cal, double& u, complex<double>& v) const
 {
     // Calculates three intermediate quantities at a given momentum for the current 
-    // parameter values.
+    // parameter values. The correct chemical potential must be given as an argument.
     
-    const complex<double>& chi_s_ = MFs.chi_s;
-    const complex<double>& chi_d_ = MFs.chi_d;
-    const complex<double>& Delta_s_ = MFs.Delta_s;
-    const complex<double>& Delta_d_ = MFs.Delta_d;
+    const complex<double>& chi_s_ = MFs_.chi_s;
+    const complex<double>& chi_d_ = MFs_.chi_d;
+    const complex<double>& Delta_s_ = MFs_.Delta_s;
+    const complex<double>& Delta_d_ = MFs_.Delta_d;
     
     // Expressions appearing in the Bloch Hamiltonian
     // ** Note that, in our case, eps_p and eps_m are one and the same. **
@@ -203,40 +290,15 @@ void ham1_t::diag(const double kx, const double ky, const double mu_local, doubl
     v = -D/abs(D) * std::sqrt( (1.-xi_bar/E)/.2 );
 }
 
-double ham1_t::utility(const double mu_local) const
+MFs_t ham1_t::compute_MFs()
 {
-    // Function whose zero gives the "correct" value of mu.
-    // Remember, std::norm() is square magnitude.
-    double ans = 0.;
+    // Step 1: calculate chemical potential for these parameters
+    const double mu = chempot();
     
-    double      E_cal=0.;
-    double          u=0.;
-    complex<double> v=0.;
-    for (int i=0; i<k1_pts_; ++i)
-      for (int j=0; j<k2_pts_; ++j)
-      {
-        const double kx = kspace.kx_grid[kspace.k_i(i,j)];
-        const double ky = kspace.ky_grid[kspace.k_i(i,j)];
-        diag(kx, ky, mu_local, E_cal, u, v); // Assign values to u, v, and E_cal.
-        ans += (std::norm(u) - std::norm(v)) * (2.*nF(T_,E_cal) - 1.) / num_unit_cells;
-      }
-    ans -= x_;
-    return ans;
-}
-
-void ham1_t::chempot()
-{
-    // Finds the chemical potential using a bisection method. To be called before computing the MFs.
-    mu_ = bisec1(-100., 100.);
-}
-
-MFs_t ham1_t::compute_MFs(const double kx, const double ky) const
-{
-    // To be called after the correct mu_ is found and assigned.
-    double      E_cal=0.;
-    double          u=0.;
-    complex<double> v=0.;
+    // Step 2: calculate MFs using chemical potential
+    // To be called after the correct mu is found and assigned.
     
+    // Variables for reduction
     double                x = 0.;
     complex<double>   chi_x = 0.;
     complex<double>   chi_y = 0.;
@@ -246,9 +308,14 @@ MFs_t ham1_t::compute_MFs(const double kx, const double ky) const
     for (int i=0; i<k1_pts_; ++i)
       for (int j=0; j<k2_pts_; ++j)
       {
+        // Variables to be assigned to
+        double      E_cal=0.;
+        double          u=0.;
+        complex<double> v=0.;
+        
         const double kx = kspace.kx_grid[kspace.k_i(i,j)];
         const double ky = kspace.ky_grid[kspace.k_i(i,j)];
-        diag(kx, ky, mu_, E_cal, u, v); // Assign values to u, v, and E_cal.
+        diag(kx, ky, mu, E_cal, u, v); // Assign values to u, v, and E_cal.
         
         const double factor = (1.-2.*nF(T_, E_cal)) / num_unit_cells;
         
@@ -265,65 +332,123 @@ MFs_t ham1_t::compute_MFs(const double kx, const double ky) const
     const complex<double> Delta_d = (Delta_x - Delta_y)/2.;
     
     MFs_t MFs_out(chi_s, chi_d, Delta_s, Delta_d);
+    
+    return MFs_out;
+}
+
+bool ham1_t::FixedPoint(int*const num_loops_p, const bool with_output)
+{
+    // Performs the iterative self-consistent search using the parameters from ham1. 
+    // The initial values of the MF attributes are used as the starting values for the 
+    // search; the end values are also stored in these same MF attributes.
+    if (with_output) // Format display output and set precision
+        std::cout << std::scientific << std::showpos;
+    
+    // Declare MFs variables and INITIALIZE THEM TO INPUT VALUES
+    MFs_t MFs_in(MFs_initial_);
+    MFs_t MFs_out(MFs_initial_);
+    double HFE_prev = 0.; // For keeping track of free energy at previous step
+    
+//     if (with_output)
+//       std::cout << "\t" "rho_s_" "\t\t" "rho_a_" << std::endl;
+    
+    int counter = 0; // Define counter for number of loops
+    bool converged=false, fail=false; // Used to stop the while looping
+    do // Iterate until self-consistency is achieved
+    {
+        ++counter; // Increment counter
+        
+        
+        // Past a certain number of loops, we mix in part of the previous input vals
+        // Mixing fraction mixratio (mixratio=1 corresponds to using fully new value)
+        const double mixratio = FPparams_.mixratio(counter, !with_output);
+        
+        //MFs_.update_values(MFs_out, mixratio);
+        MFs_ = MFs_*(1.-mixratio) + MFs_out*mixratio; // Update mean-field values
+        HFE_prev = HFE_; // Store previous free energy in HFE_prev
+        
+        
+        if (with_output)
+        {
+          std::cout << counter << "  mixratio = " << mixratio << "\ninput\t";
+          std::cout << MFs_ << std::endl;
+        }
+        
+        // Compute MFs. Output is assigned to the 'out' arguments.
+        // The HFE for the final set of MF values is assigned to the attribute HFE_.
+        // Likewise, the final chemical potential is assigned to mu_.
+        //ComputeMFs(rho_s_out, rho_a_out, &HFE_, &mu_);
+        MFs_out = compute_MFs();
+        
+        if (with_output)
+          std::cout << "|  " << HFE_ << std::endl;
+        
+        MFs_t MFs_diff = MFs_out - MFs_; // Differences between outputs and inputs
+        
+        if (with_output) // Print the differences
+        {
+          std::cout << "diff\t";
+          std::cout << MFs_diff << std::endl;
+          std::cout << "|  " << HFE_-HFE_prev << std::endl;
+        }
+        
+        // Test for convergence.
+        converged = MFs_diff.check_bound(FPparams_.tol_);
+        fail = (!converged) && (counter>FPparams_.loops_lim_); // Must come after converged line
+        
+    } while (!converged && !fail);
+    
+    // Unless num_loops_p is the null pointer, assign the number of loops to its location
+    if (num_loops_p!=NULL) *num_loops_p = counter;
+    
+    // We make sure that either converged or fail is true.
+    if ((converged==true) && (fail==true) )
+        std::cout << "OUPS 1: This option shouldn't have occurred! (A)\n";
+    if ((converged==false) && (fail==false) )
+        std::cout << "OUPS 1: This option shouldn't have occurred! (B)\n";
+    
+    return fail;
 }
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Constructor and destructor
-ham1_t::ham1_t(const int k1_pts, const int k2_pts, const double tol, const int loops_lim,
-               const int mixing_vals_len, const int*const counter_vals, const double*const mixing_vals)
-    :k1_pts_(k1_pts), k2_pts_(k2_pts), loops_lim_(loops_lim), tol_(tol),
-    kspace(b1_, b2_, k1_pts, k2_pts, num_bands)
+ham1_t::ham1_t(const FPparams_t FPparams, const MFs_t MFs_initial, const int k1_pts, const int k2_pts)
+    :FPparams_(FPparams), MFs_initial_(MFs_initial),
+    k1_pts_(k1_pts), k2_pts_(k2_pts), 
+    kspace(b1_, b2_, k1_pts, k2_pts) // We do not need memory for evals or evecs
 {
     /* Constructor implementation */
     resetMFs(); // Sets the mean fields to default value
     
-    const int len_default = 13;
-    const int   counter_vals_default [len_default] = { 10,  20,  30,  40,  50,  60,  90, 120, 150,  180,  210,  240,  270};
-    const double mixing_vals_default [len_default] = {0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.08, 0.06, 0.04, 0.02};
-    
-    if (mixing_vals_len==0) // Use the default values
-    {
-      mixing_vals_len_ = len_default; // The default value
-      counter_vals_ = new int [mixing_vals_len_]; // Reserve memory for arrays
-      mixing_vals_  = new double [mixing_vals_len_];
-      for (int i=0; i<mixing_vals_len_; ++i) // Assign values to default ones
-      {
-        counter_vals_[i] = counter_vals_default[i];
-        mixing_vals_[i]  = mixing_vals_default[i];
-      }
-    }
-    
-    else // Use the user input
-    {
-      mixing_vals_len_ = mixing_vals_len;
-      counter_vals_ = new int [mixing_vals_len_]; // Reserve memory for arrays
-      mixing_vals_  = new double [mixing_vals_len_];
-      for (int i=0; i<mixing_vals_len_; ++i) // Assign values to default ones
-      {
-        counter_vals_[i] = counter_vals[i];
-        mixing_vals_[i]  = mixing_vals[i];
-      }
-    }
+//     const int len_default = 13;
+//     const int   counter_vals_default [len_default] = { 10,  20,  30,  40,  50,  60,  90, 120, 150,  180,  210,  240,  270};
+//     const double mixing_vals_default [len_default] = {0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.08, 0.06, 0.04, 0.02};
+//     
+//     if (mixing_vals_len==0) // Use the default values
+//     {
+//       mixing_vals_len_ = len_default; // The default value
+//       counter_vals_ = new int [mixing_vals_len_]; // Reserve memory for arrays
+//       mixing_vals_  = new double [mixing_vals_len_];
+//       for (int i=0; i<mixing_vals_len_; ++i) // Assign values to default ones
+//       {
+//         counter_vals_[i] = counter_vals_default[i];
+//         mixing_vals_[i]  = mixing_vals_default[i];
+//       }
+//     }
+//     
+//     else // Use the user input
+//     {
+//       mixing_vals_len_ = mixing_vals_len;
+//       counter_vals_ = new int [mixing_vals_len_]; // Reserve memory for arrays
+//       mixing_vals_  = new double [mixing_vals_len_];
+//       for (int i=0; i<mixing_vals_len_; ++i) // Assign values to default ones
+//       {
+//         counter_vals_[i] = counter_vals[i];
+//         mixing_vals_[i]  = mixing_vals[i];
+//       }
+//     }
     
     std::cout << "ham1_t instance created.\n";
 }
@@ -343,8 +468,8 @@ std::string ham1_t::GetAttributes()
          << "\nk-space points: " << k1_pts_ << "," << k1_pts_ << "; num_bands = " << num_bands
          << ", T = " << T_ << "\nx = " << x_
          << "\nt = " << t_ << ", tp = " << tp_ << ", J = " << J_
-         << "\ntol = " << tol_ << ", loops_lim = " << loops_lim_
-         << "\nStarting values of the MFs: " << MFs_initial;
+         << "\n" << FPparams_
+         << "\nStarting values of the MFs: " << MFs_initial_;
         
     const std::string Attributes = strs.str(); // Write the stream contents to a string
     
@@ -527,88 +652,8 @@ std::string ham1_t::GetAttributes()
 // 
 // 
 // 
-
 // 
 // 
-// bool ham1_t::FixedPoint(int*const num_loops_p, const bool with_output)
-// {
-//     // Performs the iterative self-consistent search using the parameters from ham1. 
-//     // The initial values of the MF attributes are used as the starting values for the 
-//     // search; the end values are also stored in these same MF attributes.
-//     if (with_output) // Format display output and set precision
-//         std::cout << std::scientific << std::showpos;
-//     
-//     // Declare output variables and INITIALIZE THEM TO INPUT VALUES
-//     MFs_t MFs_out(MFs); // Declare output MFs and **initialize them to input values**.
-//     double HFE_prev = 0.; // For keeping track of free energy at previous step
-//     
-//     if (with_output)
-//       std::cout << "\t" "rho_s_" "\t\t" "rho_a_" << std::endl;
-//     
-//     int counter = 0; // Define counter for number of loops
-//     bool converged=false, fail=false; // Used to stop the while looping
-//     do // Iterate until self-consistency is achieved
-//     {
-//         ++counter; // Increment counter
-//         
-//         
-//         // Past a certain number of loops, we mix in part of the previous input vals
-//         // Mixing fraction mixratio (mixratio=1 corresponds to using fully new value)
-//         const double mixratio = Set_mixratio(counter, counter_vals_, mixing_vals_, mixing_vals_len_, with_output);
-//         
-//         //MFs.update_values(MFs_out, mixratio);
-//         MFs = MFs*(1.-mixratio) + MFs_out*mixratio; // Update mean-field values
-//         HFE_prev = HFE_; // Store previous free energy in HFE_prev
-//         
-//         
-//         if (with_output)
-//         {
-//           std::cout << counter << "  mixratio = " << mixratio << "\ninput\t";
-//           for (int Q=0; Q<num_harmonics; ++Q)
-//           {
-//             std::cout << rho_s_[Q] << "\t";
-//             std::cout << rho_a_[Q] << "\t";
-//           }
-//         }
-//         
-//         // Compute MFs. Output is assigned to the 'out' arguments.
-//         // The HFE for the final set of MF values is assigned to the attribute HFE_.
-//         // Likewise, the final chemical potential is assigned to mu_.
-//         ComputeMFs(rho_s_out, rho_a_out, &HFE_, &mu_);
-//         
-//         if (with_output)
-//           std::cout << "|  " << HFE_ << std::endl;
-//         
-//         MFs_t MFs_diff = MFs_out - MFs; // Differences between outputs and inputs
-//         
-//         if (with_output) // Print the differences
-//         {
-//           std::cout << "diff\t";
-//           for (int Q=0; Q<num_harmonics; ++Q)
-//           {
-//             std::cout << rho_s_diff[Q] << "\t";
-//             std::cout << rho_a_diff[Q] << "\t";
-//           }
-//           std::cout << "|  " << HFE_-HFE_prev << std::endl;
-//         }
-//         
-//         // Test for convergence. The density (first element of rho_s_diff) is ignored.
-//         converged = MFs_diff.check_bound(tol_);
-//         fail = (!converged) && (counter>loops_lim_); // Must come after converged line
-//         
-//     } while (!converged && !fail);
-//     
-//     // Unless num_loops_p is the null pointer, assign the number of loops to its location
-//     if (num_loops_p!=NULL) *num_loops_p = counter;
-//     
-//     // We make sure that either converged or fail is true.
-//     if ((converged==true) && (fail==true) )
-//         std::cout << "OUPS 1: This option shouldn't have occurred! (A)\n";
-//     if ((converged==false) && (fail==false) )
-//         std::cout << "OUPS 1: This option shouldn't have occurred! (B)\n";
-//     
-//     return fail;
-// }
 // 
 // 
 // // **************************************************************************************

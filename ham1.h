@@ -30,7 +30,6 @@ class MFs_t
     
     // Constructor declarations
     MFs_t(complex<double> chi_s_=0., complex<double> chi_d_=0., complex<double> Delta_s_=0., complex<double> Delta_d_=0.);
-    MFs_t(const complex<double>*const MFs_array);
     
     void MFs_from_array(const complex<double>*const MFs_array);
     void MFs_to_array(complex<double>*const MFs_array) const;
@@ -45,11 +44,36 @@ class MFs_t
     // Binary addition operator
     MFs_t operator + (const MFs_t& MFs_toadd);
     
+    // Binary subtraction operator
+    MFs_t operator - (const MFs_t& MFs_toadd);
+    
     // Multiplication by a double
     MFs_t operator * (const double factor);
     
     // Negation operator
     MFs_t operator - ();
+};
+
+class FPparams_t
+{
+  private:
+    const FPparams_t& operator = (const FPparams_t&); // Private assignment operator
+    
+    string output_text_; // Used in const char* casting
+    
+    const int mixing_vals_len_;
+    int*         counter_vals_;
+    double*       mixing_vals_;
+    
+  public:
+    const double    tol_;
+    const int loops_lim_;
+    FPparams_t(const double tol, const int loops_lim, const int mixing_vals_len, const int*const counter_vals, const double*const mixing_vals);
+    ~FPparams_t();
+    FPparams_t(const FPparams_t& copy_source); // Copy constructor
+    
+    double mixratio(const int iteration, const bool silent=false) const;
+    operator const char* (); // Operator for casting to const char*
 };
 
 class ham1_t
@@ -67,12 +91,7 @@ class ham1_t
     const ham1_t& operator=(const ham1_t&);
     
     
-    /* Parameters that the user doesn't need to modify after instantiation. */
-    
-    int mixing_vals_len_;
-    int*   counter_vals_;
-    double* mixing_vals_;
-    const int loops_lim_; // Limit to the number of iteration loops. Assigned in constructor.
+    // Parameters that the user doesn't need to modify after instantiation.
     
     // Parameters for the momentum space grid. Assigned in the constructor.
     const double b1_[2] = {1., 0.};
@@ -81,41 +100,32 @@ class ham1_t
     const int k2_pts_;
     const int states_per_cell = 2; // Number of states in an (original) unit cell
     const int num_unit_cells = k1_pts_*k2_pts_; // The number of (original) unit cells
-    
-    // Size of the Hamiltonian, or equivalently number of bands
-    const int num_bands = states_per_cell; // The number of bands, i.e. the order of the matrix for each k
-    const int ham_array_rows = num_bands; // Same as matrix order for full storage
-    const int ham_array_cols = num_bands; // Same as matrix order for full storage
     const int num_states = num_unit_cells * states_per_cell;
+    const int num_bands = states_per_cell; // Size of the Hamiltonian, or equivalently number of bands
+    
+    // Declare an instace of MFs_t to hold the starting MF values.
+    MFs_t MFs_initial_;
+    MFs_t MFs_;
+    
+    kspace_t kspace; // Initialized in the initializer list.
+    
+    double HFE_ = -99.; // For storing the free energy
+    
+    FPparams_t FPparams_; // Parameters for the fixed-point algorithm. Assigned in constructor.
     
     double bisec1(const double a_in, const double b_in, const bool show_output=false) const;
-    void diag(const double kx, const double ky, const double mu_local, double& E_cal, double& u, complex<double>& v) const;
-    double utility(const double mu_local) const;
-    void chempot();
-    MFs_t compute_MFs(const double kx, const double ky) const;
+    void   diag(const double kx, const double ky, const double mu_local, double& E_cal, double& u, complex<double>& v) const;
+    double chempot_utility(const double mu_local) const;
+    double chempot();
+    MFs_t  compute_MFs();
     
     
     //void ComputeMFs_old(double*const rho_s_out, double*const rho_a_out, double*const HFE_p=NULL, double*const mu_p=NULL) const;
     //void ComputeMFs    (double*const rho_s_out, double*const rho_a_out, double*const HFE_p=NULL, double*const mu_p=NULL) const;
     
-    kspace_t kspace; // Initialized in the initializer list.
-    
-    double HFE_ = -99.; // For storing the free energy
-    double mu_  = -9.;  // For storing the chemical potential
-    
-    const double tol_; // Tolerance for the equality of the mean fields
-    
   public:
     
     /* Settings for the iterative search */
-    
-    // The MF values that are used in the Hamiltonian.
-    // This is where the user sets the initial values of the MFs.
-    
-    // Declare instances of the MFs_t class, which holds the MFs.
-    MFs_t MFs_initial;
-    MFs_t MFs;
-    
     
     // Hamiltonian parameters that the user may want to change
     double T_ = 1.; // Sets the temperature.
@@ -129,8 +139,7 @@ class ham1_t
     
     
     // Constructor declaration
-    ham1_t(const int k1_pts=62, const int k2_pts=62, const double tol=4.e-6, const int loops_lim=300,
-           const int mixing_vals_len=0, const int*const counter_vals=NULL, const double*const mixing_vals=NULL);
+    ham1_t(const FPparams_t FPparams, const MFs_t MFs_initial, const int k1_pts=62, const int k2_pts=62);
     ~ham1_t(); // Destructor declaration
     
     bool FixedPoint(int*const num_loops_p=NULL, const bool with_output=false);
