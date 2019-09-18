@@ -94,8 +94,8 @@ class ham1_t
     // Parameters that the user doesn't need to modify after instantiation.
     
     // Parameters for the momentum space grid. Assigned in the constructor.
-    const double b1_[2] = {1., 0.};
-    const double b2_[2] = {0., 1.};
+    const double b1_[2] = {2.*M_PI, 0.     };
+    const double b2_[2] = {0.,      2.*M_PI};
     const int k1_pts_; // Useful to allow the user to set these for convergence studies
     const int k2_pts_;
     const int states_per_cell = 2; // Number of states in an (original) unit cell
@@ -113,10 +113,10 @@ class ham1_t
     
     FPparams_t FPparams_; // Parameters for the fixed-point algorithm. Assigned in constructor.
     
-    double bisec1(const double a_in, const double b_in, const bool show_output=false) const;
-    void   diag(const double kx, const double ky, const double mu_local, double& E_cal, double& u, complex<double>& v) const;
+    bool   diag(const double kx, const double ky, const double mu_local, double& E_cal, double& u, complex<double>& v) const;
     double chempot_utility(const double mu_local) const;
-    double chempot();
+    double bisec1(const double a_in, const double b_in, const bool show_output=false) const;
+    double chempot(const bool show_output=false) const;
     MFs_t  compute_MFs();
     
     
@@ -128,7 +128,7 @@ class ham1_t
     /* Settings for the iterative search */
     
     // Hamiltonian parameters that the user may want to change
-    double T_ = 1.; // Sets the temperature.
+    double T_ = 0.1; // Sets the temperature.
     double x_ = 0.1; // Hole doping; between -1 and 1.
     double t_  = 1.; // NN hopping amplitude
     double tp_ = -0.25; // NNN hopping amplitude
@@ -147,11 +147,11 @@ class ham1_t
     std::string GetAttributes();
     
     // ROUTINES FOR CALCULATING THE FREE ENERGY
-    double Helmholtz  (const double*const energies, const double mu, const double*const rho_s_out, const double*const rho_a_out) const;
-    double Omega_trial(const double*const energies, const double mu, const double*const rho_s_out, const double*const rho_a_out) const;
-    double Omega_MF   (const double*const energies, const double mu) const;
-    double mean_V   (const double*const rho_s_out, const double*const rho_a_out) const;
-    double mean_V_MF(const double*const rho_s_out, const double*const rho_a_out) const;
+//     double Helmholtz  (const double*const energies, const double mu, const double*const rho_s_out, const double*const rho_a_out) const;
+//     double Omega_trial(const double*const energies, const double mu, const double*const rho_s_out, const double*const rho_a_out) const;
+//     double Omega_MF   (const double*const energies, const double mu) const;
+//     double mean_V   (const double*const rho_s_out, const double*const rho_a_out) const;
+//     double mean_V_MF(const double*const rho_s_out, const double*const rho_a_out) const;
 };
 
 #endif

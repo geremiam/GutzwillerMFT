@@ -6,6 +6,7 @@
 #include <sstream> // For stringstreams
 #include <complex> // Needed to import alloc.h
 #include <cassert> // For assert function
+#include <cmath>
 #include "alloc.h" // Allocation/deallocation of arrays
 #include "array_init.h" // Initialization of arrays
 #include "math.h" // Various math functions
@@ -174,6 +175,9 @@ double ham1_t::chempot_utility(const double mu_local) const
     // Remember, std::norm() is square magnitude.
     double ans = 0.;
     
+    // Tracks the number of marginal cases within the BZ, where we set |u|^2 = |v|^2 = 1/2.
+    int marginals = 0;
+    
     double      E_cal=0.;
     double          u=0.;
     complex<double> v=0.;
@@ -182,10 +186,15 @@ double ham1_t::chempot_utility(const double mu_local) const
       {
         const double kx = kspace.kx_grid[kspace.k_i(i,j)];
         const double ky = kspace.ky_grid[kspace.k_i(i,j)];
-        diag(kx, ky, mu_local, E_cal, u, v); // Assign values to u, v, and E_cal.
-        ans += (std::norm(u) - std::norm(v)) * (2.*nF(T_,E_cal) - 1.) / num_unit_cells;
+        marginals += diag(kx, ky, mu_local, E_cal, u, v); // Assign values to u, v, and E_cal.
+        ans += (std::norm(u) - std::norm(v)) * (1. - 2.*nF(T_,E_cal)) / num_unit_cells;
       }
     ans -= x_;
+    
+    if (marginals!=0)
+        std::cout << "WARNING: number of marginal cases is " << marginals << " out of " 
+        << num_unit_cells << ", i.e. " << 100.*marginals/num_unit_cells << "%." << std::endl;
+    
     return ans;
 }
 
@@ -194,8 +203,12 @@ double ham1_t::bisec1(const double a_in, const double b_in, const bool show_outp
     // The chemical potential is found using the bisection method. Uses 100 times machine 
     // epsilon as relative tolerance.
     
-    assert(a_in<b_in); // Make sure that a < b.
-    assert(chempot_utility(a_in)*chempot_utility(b_in)<0.); // Make sure there is a zero between the two inputs.
+    // Make sure that a < b.
+    if ( !(a_in<b_in) )
+      std::cout << "WARNING: function \"bisec\" requires a_in<b_in." << std::endl;
+    // Make sure there is a zero between the two inputs.
+    if ( !(chempot_utility(a_in)*chempot_utility(b_in)<0.) )
+      std::cout << "WARNING: the function does not change sign between a_in and b_in." << std::endl;
     const bool increasing = (chempot_utility(a_in) < chempot_utility(b_in)); // Determine if the function is increasing
     
     // Starting values for a and b. Choose them slightly outside the energy range to be safe.
@@ -237,6 +250,8 @@ double ham1_t::bisec1(const double a_in, const double b_in, const bool show_outp
         else
           a = midpoint;
       }
+      else
+        std::cout << "\nWARNING: image has invalid value." << std::endl;
       
       const double tolerance = 100. * eps_double * std::abs((a+b))/2.;//eps gives rel. tol.
       if (show_output)
@@ -249,18 +264,20 @@ double ham1_t::bisec1(const double a_in, const double b_in, const bool show_outp
     return (b+a)/2.; // Take mu to be the average of a and b.
 }
 
-double ham1_t::chempot()
+double ham1_t::chempot(const bool show_output) const
 {
     // Finds the chemical potential using a bisection method. To be called before computing the MFs.
     const double max = 5. * (abs(t_) + abs(tp_) + abs(J_));
-    const double mu_out = bisec1(-max, max);
+    const double mu_out = bisec1(-max, max, show_output);
     return mu_out;
 }
 
-void ham1_t::diag(const double kx, const double ky, const double mu_local, double& E_cal, double& u, complex<double>& v) const
+bool ham1_t::diag(const double kx, const double ky, const double mu_local, double& E_cal, double& u, complex<double>& v) const
 {
     // Calculates three intermediate quantities at a given momentum for the current 
     // parameter values. The correct chemical potential must be given as an argument.
+    
+    bool marginal = false; // Signals marginal cases, where we set |u|^2 = |v|^2 = 1/2.
     
     const complex<double>& chi_s_ = MFs_.chi_s;
     const complex<double>& chi_d_ = MFs_.chi_d;
@@ -286,8 +303,28 @@ void ham1_t::diag(const double kx, const double ky, const double mu_local, doubl
     const double E      = sqrt( xi_bar*xi_bar + std::norm(D) ); // Remember, std::norm() gives magnitude squared.
     
     E_cal  = (xi_p-xi_m)/2. + E;
-    u =             std::sqrt( (1.+xi_bar/E)/.2 );
-    v = -D/abs(D) * std::sqrt( (1.-xi_bar/E)/.2 );
+    // Carefully handle 0./0. situations.
+    if ( (xi_bar==0.) && (E==0.) )
+    {
+        u =                      std::sqrt(1./2.);
+        v = - polar(1.,arg(D)) * std::sqrt(1./2.);
+        marginal = true;
+    }
+    else
+    {
+        u =                      std::sqrt( (1.+xi_bar/E)/2. );
+        v = - polar(1.,arg(D)) * std::sqrt( (1.-xi_bar/E)/2. );
+    }
+    
+    // Check for nans.
+    if (std::isnan(E_cal))
+        std::cout << "WARNING: E_cal is nan. mu_local = " << mu_local << std::endl;
+    if (std::isnan(u))
+        std::cout << "WARNING: u is nan. mu_local = " << mu_local << std::endl;
+    if ( std::isnan(v.real()) || std::isnan(v.imag()) )
+        std::cout << "WARNING: v is nan. mu_local = " << mu_local << std::endl;
+    
+    return marginal;
 }
 
 MFs_t ham1_t::compute_MFs()
@@ -297,6 +334,9 @@ MFs_t ham1_t::compute_MFs()
     
     // Step 2: calculate MFs using chemical potential
     // To be called after the correct mu is found and assigned.
+    
+    // Tracks the number of marginal cases within the BZ, where we set |u|^2 = |v|^2 = 1/2.
+    int marginals = 0;
     
     // Variables for reduction
     double                x = 0.;
@@ -325,6 +365,10 @@ MFs_t ham1_t::compute_MFs()
         Delta_x +=   0.5 * factor * cos(kx) * u * v;
         Delta_y +=   0.5 * factor * cos(ky) * u * v;
       }
+    
+    if (marginals!=0)
+        std::cout << "WARNING: number of marginal cases is " << marginals << " out of " 
+        << num_unit_cells << ", i.e. " << 100.*marginals/num_unit_cells << "%." << std::endl;
     
     const complex<double>   chi_s = (chi_x  +  chi_y) / 2.;
     const complex<double>   chi_d = (chi_x  -  chi_y) / 2.;

@@ -96,6 +96,85 @@ void FPparams_t_test_2()
 // **************************************************************************************
 void ham1_t_test_1()
 {
+    // Test for the diag method
+    
+    // We need to declare parameters for the fixed point algorithm.
+    const double tol = 1.e-6;
+    const int loops_lim = 300;
+    const int mixing_vals_len = 4;
+    const int counter_vals [mixing_vals_len] = {10, 20, 30, 40};
+    const double mixing_vals [mixing_vals_len] = {0.9, 0.8, 0.7, 0.6};
+    FPparams_t FPparams(tol, loops_lim, mixing_vals_len, counter_vals, mixing_vals);
+    
+    // Declare an object to hold the initial values for the MFs.
+    MFs_t MFs_initial(0., 0., 0., 0.);
+    
+    // Declare an instance of the Hamiltonian
+    ham1_t ham1(FPparams, MFs_initial, 500, 500);
+    
+    std::cout << ham1.MFs_ << std::endl;
+    
+    const double kx = 0.*M_PI;
+    const double ky = 0.*M_PI;
+    const double mu = 0.;
+    
+    double E_cal=0.;
+    double u=0.;
+    complex<double> v=0.;
+    
+    ham1.diag(kx, ky, mu, E_cal, u, v);
+    
+    std::cout << "E_cal = " << E_cal << ", u = " << u << ", v = " << v << std::endl;
+}
+void ham1_t_test_2()
+{
+    // Test of the chempot_utility method
+    
+    // We need to declare parameters for the fixed point algorithm.
+    const double tol = 1.e-6;
+    const int loops_lim = 300;
+    const int mixing_vals_len = 4;
+    const int counter_vals [mixing_vals_len] = {10, 20, 30, 40};
+    const double mixing_vals [mixing_vals_len] = {0.9, 0.8, 0.7, 0.6};
+    FPparams_t FPparams(tol, loops_lim, mixing_vals_len, counter_vals, mixing_vals);
+    
+    // Declare an object to hold the initial values for the MFs.
+    MFs_t MFs_initial(0., 0., 0., 0.);
+    
+    // Declare an instance of the Hamiltonian
+    ham1_t ham1(FPparams, MFs_initial, 500, 500);
+    
+    std::cout << ham1.MFs_ << std::endl;
+    
+    std::cout << ham1.chempot_utility(-1.) << std::endl;
+}
+void ham1_t_test_3()
+{
+    // Testfor the chempot method
+    
+    // We need to declare parameters for the fixed point algorithm.
+    const double tol = 1.e-6;
+    const int loops_lim = 300;
+    const int mixing_vals_len = 4;
+    const int counter_vals [mixing_vals_len] = {10, 20, 30, 40};
+    const double mixing_vals [mixing_vals_len] = {0.9, 0.8, 0.7, 0.6};
+    FPparams_t FPparams(tol, loops_lim, mixing_vals_len, counter_vals, mixing_vals);
+    
+    // Declare an object to hold the initial values for the MFs.
+    MFs_t MFs_initial(0.1, 0.2, 0., 0.);
+    
+    // Declare an instance of the Hamiltonian
+    ham1_t ham1(FPparams, MFs_initial, 500, 500);
+    
+    std::cout << ham1.MFs_ << std::endl;
+    
+    std::cout << "Calculating chemical potential.\n" << std::endl;
+    std::cout << std::setprecision(15) << ham1.chempot(true) << std::endl;
+}
+void ham1_t_test_4()
+{
+    // Test for the FixedPoint method
+    
     // We need to declare parameters for the fixed point algorithm.
     const double tol = 1.e-6;
     const int loops_lim = 300;
@@ -108,7 +187,7 @@ void ham1_t_test_1()
     MFs_t MFs_initial(0.1, 0.2, 0.3, 0.4);
     
     // Declare an instance of the Hamiltonian
-    ham1_t ham1(FPparams, MFs_initial);
+    ham1_t ham1(FPparams, MFs_initial, 94, 94);
     
     ham1.FixedPoint(NULL, true);
 }
@@ -117,6 +196,6 @@ void ham1_t_test_1()
 
 int main()
 {
-    ham1_t_test_1();
+    ham1_t_test_4();
     return 0;
 }

@@ -103,6 +103,8 @@ double bisec(const double a_in, const double b_in, double foo(const double), con
         else
           a = midpoint;
       }
+      else
+        std::cout << "\nWARNING: image has invalid value." << std::endl;
       
       const double tolerance = 100. * eps_double * std::abs((a+b))/2.;//eps gives rel. tol.
       if (show_output)
