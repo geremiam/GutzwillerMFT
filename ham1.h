@@ -38,6 +38,9 @@ class MFs_t
     
     bool check_bound(const double bound) const;
     
+    // Gives output format
+    string output_format() const;
+    
     // Operator for casting to const char*.
     operator const char* ();
     

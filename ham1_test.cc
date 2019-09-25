@@ -215,7 +215,7 @@ void ham1_t_test_5()
     
     bool output = ham1.FixedPoint(true);
     
-    std::cout << "output = " << output << std::endl;
+    std::cout << "fail = " << output << std::endl;
 }
 
 

@@ -56,10 +56,16 @@ bool MFs_t::check_bound(const double bound) const
     assert(bound>0.);
     return (abs(chi_s)<bound) && (abs(chi_d)<bound) && (abs(Delta_s)<bound) && (abs(Delta_d)<bound);
 }
+string MFs_t::output_format() const
+{
+    std::ostringstream output;
+    output << std::scientific << "chi_s    chi_d    Delta_s    Delta_d";
+    return output.str();
+}
 MFs_t::operator const char* () // Allows output as a string stream.
 {
     std::ostringstream output;
-    output << "chi_s = " << chi_s << ", chi_d = " << chi_d << ", Delta_s = " << Delta_s << ", Delta_d = " << Delta_d;
+    output << std::scientific << chi_s << "\t" << chi_d << "\t" << Delta_s << "\t" << Delta_d;
     output_text_ = output.str();
     return output_text_.c_str();
 }
@@ -308,7 +314,7 @@ bool ham1_t::diag(const double kx, const double ky, const double mu_local, doubl
     if ( (xi_bar==0.) && (E==0.) )
     {
         u =                      std::sqrt(1./2.);
-        v = - polar(1.,arg(D)) * std::sqrt(1./2.);
+        v = - polar(1.,arg(D)) * std::sqrt(1./2.); // Expensive to find the phase factor.
         marginal = true;
     }
     else
@@ -399,8 +405,8 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p)
     MFs_t MFs_out(MFs_initial_);
     double HFE_prev = 0.; // For keeping track of free energy at previous step
     
-//     if (with_output)
-//       std::cout << "\t" "rho_s_" "\t\t" "rho_a_" << std::endl;
+     if (with_output)
+       std::cout << MFs_in.output_format() << std::endl;
     
     int counter = 0; // Define counter for number of loops
     bool converged=false, fail=false; // Used to stop the while looping
