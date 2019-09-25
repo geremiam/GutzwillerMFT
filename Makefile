@@ -22,7 +22,7 @@ LDLIBS=-lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ld
 #LDFLAGS=-L${LAPACKE_LIB} -L${NETCDF_LIB} $(LDLIBS)
 
 # List of object files and header files belonging to modules
-MODULES=alloc array_init IO kspace math diag ham1
+MODULES=ticktock alloc array_init IO kspace math diag ham1
 HEADERS=$(patsubst %,%.h,$(MODULES))
 OBJECTS=$(patsubst %,%.o,$(MODULES))
 TESTS=$(patsubst %,%_test,$(MODULES))
@@ -42,6 +42,7 @@ all: help
 # #######################################################################################
 # Modules
 # #######################################################################################
+ticktock.o: ticktock.cc ticktock.h
 alloc.o: alloc.cc alloc.h
 array_init.o: array_init.cc array_init.h
 IO.o: IO.cc IO.h

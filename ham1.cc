@@ -7,6 +7,7 @@
 #include <complex> // Needed to import alloc.h
 #include <cassert> // For assert function
 #include <cmath>
+#include "ticktock.h"
 #include "alloc.h" // Allocation/deallocation of arrays
 #include "array_init.h" // Initialization of arrays
 #include "math.h" // Various math functions
@@ -327,10 +328,11 @@ bool ham1_t::diag(const double kx, const double ky, const double mu_local, doubl
     return marginal;
 }
 
-MFs_t ham1_t::compute_MFs()
+MFs_t ham1_t::compute_MFs(double& mu_output) const
 {
     // Step 1: calculate chemical potential for these parameters
-    const double mu = chempot();
+    const double mu_local = chempot();
+    mu_output = mu_local; // Assign the computed value to mu_output
     
     // Step 2: calculate MFs using chemical potential
     // To be called after the correct mu is found and assigned.
@@ -355,16 +357,20 @@ MFs_t ham1_t::compute_MFs()
         
         const double kx = kspace.kx_grid[kspace.k_i(i,j)];
         const double ky = kspace.ky_grid[kspace.k_i(i,j)];
-        diag(kx, ky, mu, E_cal, u, v); // Assign values to u, v, and E_cal.
+        diag(kx, ky, mu_local, E_cal, u, v); // Assign values to u, v, and E_cal.
         
         const double factor = (1.-2.*nF(T_, E_cal)) / num_unit_cells;
         
-        x       += -       factor *           (std::norm(u)-std::norm(v));
+        x       +=         factor *           (std::norm(u)-std::norm(v));
         chi_x   += - 0.5 * factor * cos(kx) * (std::norm(u)-std::norm(v));
         chi_y   += - 0.5 * factor * cos(ky) * (std::norm(u)-std::norm(v));
-        Delta_x +=   0.5 * factor * cos(kx) * u * v;
-        Delta_y +=   0.5 * factor * cos(ky) * u * v;
+        Delta_x +=   0.5 * factor * cos(kx) * u * v; // Needs to be tested
+        Delta_y +=   0.5 * factor * cos(ky) * u * v; // Needs to be tested
       }
+    
+    if (abs(x-x_)>1.e-14)
+        std::cout << "\nWARNING: output holedoping does not match input holedoping."
+                  << "\nx-x_ = " << x-x_ << std::endl;
     
     if (marginals!=0)
         std::cout << "WARNING: number of marginal cases is " << marginals << " out of " 
@@ -380,7 +386,7 @@ MFs_t ham1_t::compute_MFs()
     return MFs_out;
 }
 
-bool ham1_t::FixedPoint(int*const num_loops_p, const bool with_output)
+bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p)
 {
     // Performs the iterative self-consistent search using the parameters from ham1. 
     // The initial values of the MF attributes are used as the starting values for the 
@@ -415,14 +421,14 @@ bool ham1_t::FixedPoint(int*const num_loops_p, const bool with_output)
         if (with_output)
         {
           std::cout << counter << "  mixratio = " << mixratio << "\ninput\t";
-          std::cout << MFs_ << std::endl;
+          std::cout << MFs_;
         }
         
         // Compute MFs. Output is assigned to the 'out' arguments.
         // The HFE for the final set of MF values is assigned to the attribute HFE_.
         // Likewise, the final chemical potential is assigned to mu_.
         //ComputeMFs(rho_s_out, rho_a_out, &HFE_, &mu_);
-        MFs_out = compute_MFs();
+        MFs_out = compute_MFs(mu_);
         
         if (with_output)
           std::cout << "|  " << HFE_ << std::endl;
@@ -432,7 +438,7 @@ bool ham1_t::FixedPoint(int*const num_loops_p, const bool with_output)
         if (with_output) // Print the differences
         {
           std::cout << "diff\t";
-          std::cout << MFs_diff << std::endl;
+          std::cout << MFs_diff;
           std::cout << "|  " << HFE_-HFE_prev << std::endl;
         }
         

@@ -161,7 +161,7 @@ void ham1_t_test_3()
     FPparams_t FPparams(tol, loops_lim, mixing_vals_len, counter_vals, mixing_vals);
     
     // Declare an object to hold the initial values for the MFs.
-    MFs_t MFs_initial(0.1, 0.2, 0., 0.);
+    MFs_t MFs_initial(0.1, 0.2, {0.,0.}, {0.,0.});
     
     // Declare an instance of the Hamiltonian
     ham1_t ham1(FPparams, MFs_initial, 500, 500);
@@ -173,7 +173,7 @@ void ham1_t_test_3()
 }
 void ham1_t_test_4()
 {
-    // Test for the FixedPoint method
+    // Test for the compute_MFs() method
     
     // We need to declare parameters for the fixed point algorithm.
     const double tol = 1.e-6;
@@ -184,18 +184,44 @@ void ham1_t_test_4()
     FPparams_t FPparams(tol, loops_lim, mixing_vals_len, counter_vals, mixing_vals);
     
     // Declare an object to hold the initial values for the MFs.
-    MFs_t MFs_initial(0.1, 0.2, 0.3, 0.4);
+    MFs_t MFs_initial(0.1, 0.2, 0., 0.);
     
     // Declare an instance of the Hamiltonian
-    ham1_t ham1(FPparams, MFs_initial, 94, 94);
+    ham1_t ham1(FPparams, MFs_initial, 500, 500);
     
-    ham1.FixedPoint(NULL, true);
+    double mu_out=0.;
+    MFs_t output = ham1.compute_MFs(mu_out);
+    
+    std::cout << "output MFs: " << output << std::endl;
+    std::cout << "mu_out = " << mu_out << std::endl;
+}
+void ham1_t_test_5()
+{
+    // Test for the FixedPoint() method
+    
+    // We need to declare parameters for the fixed point algorithm.
+    const double tol = 1.e-6;
+    const int loops_lim = 300;
+    const int mixing_vals_len = 4;
+    const int counter_vals [mixing_vals_len] = {10, 20, 30, 40};
+    const double mixing_vals [mixing_vals_len] = {0.9, 0.8, 0.7, 0.6};
+    FPparams_t FPparams(tol, loops_lim, mixing_vals_len, counter_vals, mixing_vals);
+    
+    // Declare an object to hold the initial values for the MFs.
+    MFs_t MFs_initial(0.1, 0.2, {0.1,0.2}, {0.1,0.2});
+    
+    // Declare an instance of the Hamiltonian
+    ham1_t ham1(FPparams, MFs_initial, 500, 500);
+    
+    bool output = ham1.FixedPoint(true);
+    
+    std::cout << "output = " << output << std::endl;
 }
 
 
 
 int main()
 {
-    ham1_t_test_4();
+    ham1_t_test_5();
     return 0;
 }

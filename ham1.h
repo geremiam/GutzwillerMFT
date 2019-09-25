@@ -83,7 +83,7 @@ class ham1_t
   varied during a parameter study are public, except for those on which other parameters 
   depend; such parameters are modifiable with a public method. */
   
-  private:
+  public:
     
     // Private copy constructor (prohibits copy creation)
     ham1_t(const ham1_t&);
@@ -110,6 +110,7 @@ class ham1_t
     kspace_t kspace; // Initialized in the initializer list.
     
     double HFE_ = -99.; // For storing the free energy
+    double mu_ = -9.; // For storing the chemical potential
     
     FPparams_t FPparams_; // Parameters for the fixed-point algorithm. Assigned in constructor.
     
@@ -117,7 +118,7 @@ class ham1_t
     double chempot_utility(const double mu_local) const;
     double bisec1(const double a_in, const double b_in, const bool show_output=false) const;
     double chempot(const bool show_output=false) const;
-    MFs_t  compute_MFs();
+    MFs_t  compute_MFs(double& mu_output) const;
     
     
     //void ComputeMFs_old(double*const rho_s_out, double*const rho_a_out, double*const HFE_p=NULL, double*const mu_p=NULL) const;
@@ -142,7 +143,7 @@ class ham1_t
     ham1_t(const FPparams_t FPparams, const MFs_t MFs_initial, const int k1_pts=62, const int k2_pts=62);
     ~ham1_t(); // Destructor declaration
     
-    bool FixedPoint(int*const num_loops_p=NULL, const bool with_output=false);
+    bool FixedPoint(const bool with_output=false, int*const num_loops_p=NULL);
     
     std::string GetAttributes();
     
