@@ -86,7 +86,7 @@ class ham1_t
   varied during a parameter study are public, except for those on which other parameters 
   depend; such parameters are modifiable with a public method. */
   
-  public:
+  private:
     
     // Private copy constructor (prohibits copy creation)
     ham1_t(const ham1_t&);
@@ -108,12 +108,8 @@ class ham1_t
     
     // Declare an instace of MFs_t to hold the starting MF values.
     MFs_t MFs_initial_;
-    MFs_t MFs_;
     
     kspace_t kspace; // Initialized in the initializer list.
-    
-    double HFE_ = -99.; // For storing the free energy
-    double mu_ = -9.; // For storing the chemical potential
     
     FPparams_t FPparams_; // Parameters for the fixed-point algorithm. Assigned in constructor.
     
@@ -140,10 +136,12 @@ class ham1_t
     
     // Resets MFs to default starting values.
     void resetMFs();
-    
+    MFs_t MFs_;
+    double HFE_ = -99.; // For storing the free energy
+    double mu_ = -9.; // For storing the chemical potential
     
     // Constructor declaration
-    ham1_t(const FPparams_t FPparams, const MFs_t MFs_initial, const int k1_pts=62, const int k2_pts=62);
+    ham1_t(const FPparams_t FPparams, const MFs_t MFs_initial, const int k1_pts, const int k2_pts);
     ~ham1_t(); // Destructor declaration
     
     bool FixedPoint(const bool with_output=false, int*const num_loops_p=NULL);

@@ -36,7 +36,7 @@ all: help
 # ham1
 # #######################################################################################
 ham1.o: ham1.cc ham1.h $(HEADERS)
-driver_ham1.o: driver_ham1.cc driver_ham1.h ham1.h $(HEADERS)
+driver_ham1.o: driver_ham1.cc ham1.h $(HEADERS)
 driver_ham1: driver_ham1.o ham1.o $(OBJECTS)
 
 ham1_test.o: ham1_test.cc ham1.h IO.h kspace.h

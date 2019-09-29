@@ -59,13 +59,13 @@ bool MFs_t::check_bound(const double bound) const
 string MFs_t::output_format() const
 {
     std::ostringstream output;
-    output << std::scientific << "chi_s    chi_d    Delta_s    Delta_d";
+    output << "chi_s    chi_d    Delta_s    Delta_d";
     return output.str();
 }
 MFs_t::operator const char* () // Allows output as a string stream.
 {
     std::ostringstream output;
-    output << std::scientific << chi_s << "\t" << chi_d << "\t" << Delta_s << "\t" << Delta_d;
+    output << std::scientific << std::showpos << chi_s << "\t" << chi_d << "\t" << Delta_s << "\t" << Delta_d;
     output_text_ = output.str();
     return output_text_.c_str();
 }
@@ -158,7 +158,7 @@ double FPparams_t::mixratio(const int counter, const bool silent) const
 FPparams_t::operator const char* ()
 {
     std::ostringstream output;
-    output << "tol_ = " << tol_ << ", loops_lim_ = " << loops_lim_ << ", output_text_ = " << output_text_ << ", mixing_vals_len_ = " << mixing_vals_len_ << ",";
+    output << "tol_ = " << tol_ << ", loops_lim_ = " << loops_lim_ << ", mixing_vals_len_ = " << mixing_vals_len_ << ",";
     output << "\ncounter_vals_ = \n";
     for (int i=0; i<mixing_vals_len_; ++i)
         output << counter_vals_[i] << " ";
