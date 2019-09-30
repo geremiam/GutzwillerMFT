@@ -8,6 +8,7 @@ latter. Has to come *before* including lapacke.h and *after* including complex. 
 #define MKL_Complex16 std::complex<double>
 //#include <lapacke.h> // Linear algebra routines (here: diagonalization)
 #include <mkl.h>
+#include <mkl_types.h>
 #include <iostream> // Input from/output to command line
 #include "diag.h" // Include for consistency check with header
 
@@ -82,9 +83,9 @@ int simple_zheevr(const int MatOrder, std::complex<double>*const a, double*const
     
     
     // The number of evals returned is assigned to 'm' (should always be MatOrder here).
-    int64_t m=-99;
+    MKL_INT m=-99;
     
-    int64_t isuppz [2*MatOrder]; // Support of evecs in z
+    MKL_INT isuppz [2*MatOrder]; // Support of evecs in z
     
     // Choose the job type
     if (!OutputEvecs)

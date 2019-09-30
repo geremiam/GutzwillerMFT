@@ -5,7 +5,7 @@
 CXX=icpc# C++ compiler; used in implicit rules.
 CC=$(CXX)# C compiler; is used as the linker in implicit rules.
 # Compiler flags (add -fopenmp to compilation and linking for OpenMP). Used in implicit compiling rules.
-CXXFLAGS=-std=c++14 -DMKL_ILP64 -I${MKLROOT}/include -I${NETCDF_LIB}
+CXXFLAGS=-std=c++14 -O3 -xHost -DMKL_ILP64 -I${MKLROOT}/include -I${NETCDF_LIB}
 # Linker flags (add -fopenmp to compilation and linking for OpenMP). Used in implicit linking rules.
 LDFLAGS=-L${MKLROOT}/lib -Wl,-rpath,${MKLROOT}/lib -L${NETCDF_LIB}
 LDLIBS=-lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl -lnetcdf
