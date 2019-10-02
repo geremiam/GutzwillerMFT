@@ -151,6 +151,10 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         const int k1_pts = 150;//502; // Choose twice a prime number for grid resolution
         const int k2_pts = 150;//502;
         
+        string GlobalAttr; // String in which to save the global attributes.
+        
+        #pragma omp parallel default(none) shared(FPparams,MFs_initial,GlobalAttr,std::cout) reduction(+:numfails)
+        {
         // Declare and construct an instance of ham1_t
         ham1_t ham1(FPparams, MFs_initial, k1_pts, k2_pts);
     
@@ -161,13 +165,17 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         ham1.tp_ = -0.25;
         ham1.J_  = 1./3.;
         
-        const string GlobalAttr = ham1.GetAttributes(); // assign attributes to GlobalAttr
-        
-        if (with_output)
+        #pragma omp single
+        {
+          GlobalAttr = ham1.GetAttributes(); // assign attributes to GlobalAttr
+          
+          if (with_output)
             std::cout << "\n\nFPparams:\n" << FPparams << "\n"
                       << "*********************************************************" << "\n";
+        }
     
         // Loop over values of the parameter space
+        #pragma omp for schedule(dynamic,1)
         for (int f=0; f<x_pts; ++f)
         {
             if (with_output) // Print current params
@@ -199,7 +207,7 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
             
             if (with_output) std::cout << std::endl;
         }
-    
+        }
     
         // We save to a NetCDF dataset using the class defined in nc_IO. Call saving method.
         SaveData(GlobalAttr, "data/ham1/"); // Include final '/' in path for saving
@@ -216,7 +224,7 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
 int main(int argc, char* argv[])
 {
     pspaceA_t pspaceA;
-    int info = pspaceA.pstudy(true);
+    int info = pspaceA.pstudy();
     
     return info;
 }

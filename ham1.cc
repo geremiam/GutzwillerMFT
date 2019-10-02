@@ -185,12 +185,12 @@ double ham1_t::chempot_utility(const double mu_local) const
     // Tracks the number of marginal cases within the BZ, where we set |u|^2 = |v|^2 = 1/2.
     int marginals = 0;
     
-    #pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:ans, marginals)
+    //#pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:ans, marginals)
     {
     double      E_cal=0.;
     double          u=0.;
     complex<double> v=0.;
-    #pragma omp for collapse(2)
+    //#pragma omp for collapse(2)
     for (int i=0; i<k1_pts_; ++i)
       for (int j=0; j<k2_pts_; ++j)
       {
@@ -357,10 +357,10 @@ MFs_t ham1_t::compute_MFs(double& mu_output) const
     complex<double> Delta_x = 0.;
     complex<double> Delta_y = 0.;
     
-    #pragma omp declare reduction(+:complex<double>:omp_out+=omp_in) // Must declare reduction on complex numbers
-    #pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:x, chi_x, chi_y, Delta_x, Delta_y, marginals)
+    //#pragma omp declare reduction(+:complex<double>:omp_out+=omp_in) // Must declare reduction on complex numbers
+    //#pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:x, chi_x, chi_y, Delta_x, Delta_y, marginals)
     {
-    #pragma omp for collapse(2)
+    //#pragma omp for collapse(2)
     for (int i=0; i<k1_pts_; ++i)
       for (int j=0; j<k2_pts_; ++j)
       {
