@@ -29,7 +29,7 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
   public:
     // x
     const size_t x_pts = 11;
-    const double x_bounds [2] = {0.01, 0.2};
+    const double x_bounds [2] = {0.01, 0.201};
     
     const int parspace_pts = x_pts;
     
@@ -133,12 +133,10 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         newDS.Writemu(mu_grid); // Write mu variable
     }
     
-    int pstudy()
+    int pstudy(const bool with_output = false)
     {
         // This routine performs the mean-field iterative search at every point in the 
-        // parameter space defined above.
-    
-        const bool with_output = true; // Show output for diagnostics
+        // parameter space defined above. Show output for diagnostics if with_output.
         int numfails = 0; // Tracks number of points which failed to converge after loops_lim
         
         MFs_t MFs_initial({0.1,0.}, {0.2,0.}, {0.3,0.15}, {0.4,0.2});
@@ -164,8 +162,10 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         ham1.J_  = 1./3.;
         
         const string GlobalAttr = ham1.GetAttributes(); // assign attributes to GlobalAttr
-        std::cout << "\n\nFPparams:\n" << FPparams << "\n"
-                  << "*********************************************************" << "\n";
+        
+        if (with_output)
+            std::cout << "\n\nFPparams:\n" << FPparams << "\n"
+                      << "*********************************************************" << "\n";
     
         // Loop over values of the parameter space
         for (int f=0; f<x_pts; ++f)
@@ -216,7 +216,7 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
 int main(int argc, char* argv[])
 {
     pspaceA_t pspaceA;
-    int info = pspaceA.pstudy();
+    int info = pspaceA.pstudy(true);
     
     return info;
 }

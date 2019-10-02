@@ -185,9 +185,12 @@ double ham1_t::chempot_utility(const double mu_local) const
     // Tracks the number of marginal cases within the BZ, where we set |u|^2 = |v|^2 = 1/2.
     int marginals = 0;
     
+    #pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:ans, marginals)
+    {
     double      E_cal=0.;
     double          u=0.;
     complex<double> v=0.;
+    #pragma omp for collapse(2)
     for (int i=0; i<k1_pts_; ++i)
       for (int j=0; j<k2_pts_; ++j)
       {
@@ -196,6 +199,7 @@ double ham1_t::chempot_utility(const double mu_local) const
         marginals += diag(kx, ky, mu_local, E_cal, u, v); // Assign values to u, v, and E_cal.
         ans += (std::norm(u) - std::norm(v)) * (1. - 2.*nF(T_,E_cal)) / num_unit_cells;
       }
+    }
     ans -= x_;
     
     if (marginals!=0)
@@ -353,6 +357,10 @@ MFs_t ham1_t::compute_MFs(double& mu_output) const
     complex<double> Delta_x = 0.;
     complex<double> Delta_y = 0.;
     
+    #pragma omp declare reduction(+:complex<double>:omp_out+=omp_in) // Must declare reduction on complex numbers
+    #pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:x, chi_x, chi_y, Delta_x, Delta_y, marginals)
+    {
+    #pragma omp for collapse(2)
     for (int i=0; i<k1_pts_; ++i)
       for (int j=0; j<k2_pts_; ++j)
       {
@@ -363,7 +371,7 @@ MFs_t ham1_t::compute_MFs(double& mu_output) const
         
         const double kx = kspace.kx_grid[kspace.k_i(i,j)];
         const double ky = kspace.ky_grid[kspace.k_i(i,j)];
-        diag(kx, ky, mu_local, E_cal, u, v); // Assign values to u, v, and E_cal.
+        marginals += diag(kx, ky, mu_local, E_cal, u, v); // Assign values to u, v, and E_cal.
         
         const double factor = (1.-2.*nF(T_, E_cal)) / num_unit_cells;
         
@@ -373,6 +381,7 @@ MFs_t ham1_t::compute_MFs(double& mu_output) const
         Delta_x +=   0.5 * factor * cos(kx) * u * v; // Needs to be tested
         Delta_y +=   0.5 * factor * cos(ky) * u * v; // Needs to be tested
       }
+    }
     
     if (abs(x-x_)>1.e-14)
         std::cout << "\nWARNING: output holedoping does not match input holedoping."
