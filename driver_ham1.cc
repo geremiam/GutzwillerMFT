@@ -187,7 +187,9 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
             ham1.resetMFs(); // Resets MFs to default starting values.
             
             int loops=0; // Will be assigned the number of loops performed
-            const bool fail = ham1.FixedPoint(with_output, &loops);
+            double mu=0.;// Will be assigned the chemical potential of the converged Ham.
+            double energy=0.;
+            const bool fail = ham1.FixedPoint(with_output, &loops, &mu, &energy);
             
             if (fail) // Print current params
             {
@@ -201,8 +203,8 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
             Delta_s_grid[idx(f)] = ham1.MFs_.Delta_s;
             Delta_d_grid[idx(f)] = ham1.MFs_.Delta_s;
             
-            energy_grid[idx(f)] = ham1.HFE_;
-            mu_grid    [idx(f)] = ham1.mu_;
+            energy_grid[idx(f)] = energy;
+            mu_grid    [idx(f)] = mu;
             loops_grid [idx(f)] = loops; // Save the number of loops to array.
             
             if (with_output) std::cout << std::endl;

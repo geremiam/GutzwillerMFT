@@ -338,11 +338,12 @@ bool ham1_t::diag(const double kx, const double ky, const double mu_local, doubl
     return marginal;
 }
 
-MFs_t ham1_t::compute_MFs(double& mu_output) const
+MFs_t ham1_t::compute_MFs(double*const mu_output_p) const
 {
     // Step 1: calculate chemical potential for these parameters
     const double mu_local = chempot();
-    mu_output = mu_local; // Assign the computed value to mu_output
+    if (mu_output_p!=NULL)
+        *mu_output_p = mu_local; // Assign the computed value to mu_output_p
     
     // Step 2: calculate MFs using chemical potential
     // To be called after the correct mu is found and assigned.
@@ -401,7 +402,7 @@ MFs_t ham1_t::compute_MFs(double& mu_output) const
     return MFs_out;
 }
 
-bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p)
+bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*const mu_output_p, double*const energy_p)
 {
     // Performs the iterative self-consistent search using the parameters from ham1. 
     // The initial values of the MF attributes are used as the starting values for the 
@@ -412,7 +413,8 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p)
     // Declare MFs variables and INITIALIZE THEM TO INPUT VALUES
     MFs_t MFs_in(MFs_initial_);
     MFs_t MFs_out(MFs_initial_);
-    double HFE_prev = 0.; // For keeping track of free energy at previous step
+    double energy      = 0.;
+    double energy_prev = 0.; // For keeping track of free energy at previous step
     
      if (with_output)
        std::cout << MFs_in.output_format() << std::endl;
@@ -430,7 +432,7 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p)
         
         //MFs_.update_values(MFs_out, mixratio);
         MFs_ = MFs_*(1.-mixratio) + MFs_out*mixratio; // Update mean-field values
-        HFE_prev = HFE_; // Store previous free energy in HFE_prev
+        energy_prev = energy; // Store previous free energy in energy_prev
         
         
         if (with_output)
@@ -440,13 +442,13 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p)
         }
         
         // Compute MFs. Output is assigned to the 'out' arguments.
-        // The HFE for the final set of MF values is assigned to the attribute HFE_.
+        // The HFE for the final set of MF values is assigned to the attribute *energy_p.
         // Likewise, the final chemical potential is assigned to mu_.
         //ComputeMFs(rho_s_out, rho_a_out, &HFE_, &mu_);
-        MFs_out = compute_MFs(mu_);
+        MFs_out = compute_MFs(mu_output_p);
         
         if (with_output)
-          std::cout << "|  " << HFE_ << std::endl;
+          std::cout << "|  " << energy << std::endl;
         
         MFs_t MFs_diff = MFs_out - MFs_; // Differences between outputs and inputs
         
@@ -454,7 +456,7 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p)
         {
           std::cout << "diff\t";
           std::cout << MFs_diff;
-          std::cout << "|  " << HFE_-HFE_prev << std::endl;
+          std::cout << "|  " << energy-energy_prev << std::endl;
         }
         
         // Test for convergence.
@@ -465,6 +467,7 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p)
     
     // Unless num_loops_p is the null pointer, assign the number of loops to its location
     if (num_loops_p!=NULL) *num_loops_p = counter;
+    if (energy_p!=NULL) *energy_p = energy;
     
     // We make sure that either converged or fail is true.
     if ((converged==true) && (fail==true) )

@@ -117,7 +117,7 @@ class ham1_t
     double chempot_utility(const double mu_local) const;
     double bisec1(const double a_in, const double b_in, const bool show_output=false) const;
     double chempot(const bool show_output=false) const;
-    MFs_t  compute_MFs(double& mu_output) const;
+    MFs_t  compute_MFs(double*const mu_output=NULL) const;
     
     
     //void ComputeMFs_old(double*const rho_s_out, double*const rho_a_out, double*const HFE_p=NULL, double*const mu_p=NULL) const;
@@ -137,14 +137,12 @@ class ham1_t
     // Resets MFs to default starting values.
     void resetMFs();
     MFs_t MFs_;
-    double HFE_ = -99.; // For storing the free energy
-    double mu_ = -9.; // For storing the chemical potential
     
     // Constructor declaration
     ham1_t(const FPparams_t FPparams, const MFs_t MFs_initial, const int k1_pts, const int k2_pts);
     ~ham1_t(); // Destructor declaration
     
-    bool FixedPoint(const bool with_output=false, int*const num_loops_p=NULL);
+    bool FixedPoint(const bool with_output=false, int*const num_loops_p=NULL, double*const mu_output=NULL, double*const energy_p=NULL);
     
     std::string GetAttributes();
     

@@ -190,7 +190,7 @@ void ham1_t_test_4()
     ham1_t ham1(FPparams, MFs_initial, 500, 500);
     
     double mu_out=0.;
-    MFs_t output = ham1.compute_MFs(mu_out);
+    MFs_t output = ham1.compute_MFs(&mu_out);
     
     std::cout << "output MFs: " << output << std::endl;
     std::cout << "mu_out = " << mu_out << std::endl;
