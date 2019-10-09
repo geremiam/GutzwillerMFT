@@ -192,7 +192,14 @@ double ham1_t::chempot_utility(const double mu_local) const
         const double kx = kspace.kx_grid[kspace.k_i(i,j)];
         const double ky = kspace.ky_grid[kspace.k_i(i,j)];
         marginals += diag(kx, ky, mu_local, E_cal, u, v); // Assign values to u, v, and E_cal.
-        ans += (std::norm(u) - std::norm(v)) * (1. - 2.*nF(T_,E_cal)) / num_unit_cells;
+        
+        double factor=0.;
+        if (zerotemp_)
+            factor = 1.;
+        else
+            factor = 1. - 2.*nF(T_,E_cal);
+        
+        ans += (std::norm(u) - std::norm(v)) * factor / num_unit_cells;
       }
     }
     ans -= x_;
@@ -369,7 +376,11 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p) const
         const double ky = kspace.ky_grid[kspace.k_i(i,j)];
         marginals += diag(kx, ky, mu_local, E_cal, u, v); // Assign values to u, v, and E_cal.
         
-        const double factor = (1.-2.*nF(T_, E_cal)) / num_unit_cells;
+        double factor=0.;
+        if (zerotemp_)
+            factor = 1. / num_unit_cells;
+        else
+            factor = (1.-2.*nF(T_, E_cal)) / num_unit_cells;
         
         x       +=         factor *           (std::norm(u)-std::norm(v));
         chi_x   += - 0.5 * factor * cos(kx) * (std::norm(u)-std::norm(v));
@@ -397,7 +408,7 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p) const
     return MFs_out;
 }
 
-bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*const mu_output_p, double*const energy_p)
+bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*const mu_output_p, double*const energy_p, complex<double>*const DeltaSC_s, complex<double>*const DeltaSC_d)
 {
     // Performs the iterative self-consistent search using the parameters from ham1. 
     // The initial values of the MF attributes are used as the starting values for the 
@@ -460,12 +471,13 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*co
     if (num_loops_p!=NULL) *num_loops_p = counter;
     // The free energy for the converged MFs is assigned to *energy_p.
     if (energy_p!=NULL) *energy_p = energy;
+    // Calculate the full SC order parameter and assign it, if applicable
+    const double g_t = 2.*x_/(1.+x_);
+    if (DeltaSC_s!=NULL) *DeltaSC_s = g_t * MFs_.Delta_s;
+    if (DeltaSC_d!=NULL) *DeltaSC_d = g_t * MFs_.Delta_d;
     
-    // We make sure that either converged or fail is true.
-    if ((converged==true) && (fail==true) )
-        std::cout << "OUPS 1: This option shouldn't have occurred! (A)\n";
-    if ((converged==false) && (fail==false) )
-        std::cout << "OUPS 1: This option shouldn't have occurred! (B)\n";
+    // We make sure that one of "converged" or "fail" is true.
+    assert(converged != fail);
     
     return fail;
 }
@@ -495,7 +507,7 @@ std::string ham1_t::GetAttributes()
     std::ostringstream strs; // Declare a stringstream to which to write the attributes
     strs << "**ham1 parameters**"
          << "\nk-space points: " << k1_pts_ << "," << k1_pts_ << "; num_bands = " << num_bands
-         << ", T = " << T_ << "\nx = " << x_
+         << ", zerotemp = " << zerotemp_ << ", T = " << T_ << "\nx = " << x_
          << "\nt = " << t_ << ", tp = " << tp_ << ", J = " << J_
          << "\n" << FPparams_
          << "\nStarting values of the MFs: " << MFs_initial_;
@@ -503,6 +515,19 @@ std::string ham1_t::GetAttributes()
     const std::string Attributes = strs.str(); // Write the stream contents to a string
     
     return Attributes;
+}
+
+void ham1_t::set_zerotemp()
+{
+    zerotemp_ = true;
+    T_ = -1.;
+}
+void ham1_t::set_nonzerotemp(const double T)
+{
+    zerotemp_ = false;
+    T_ = T;
+    if (T<=0.)
+        std::cout << "WARNING: set_nonzerotemp() requires a strictly positive argument.\n";
 }
 
 // 

@@ -113,6 +113,10 @@ class ham1_t
     
     FPparams_t FPparams_; // Parameters for the fixed-point algorithm. Assigned in constructor.
     
+    // Parameters that the user must modify via methods because they are interdependent
+    bool zerotemp_ = false;
+    double T_ = 0.1; // Temperature
+    
     bool   diag(const double kx, const double ky, const double mu_local, double& E_cal, double& u, complex<double>& v) const;
     double chempot_utility(const double mu_local) const;
     double bisec1(const double a_in, const double b_in, const bool show_output=false) const;
@@ -124,7 +128,6 @@ class ham1_t
     /* Settings for the iterative search */
     
     // Hamiltonian parameters that the user may want to change
-    double T_ = 0.1; // Sets the temperature.
     double x_ = 0.1; // Hole doping; between -1 and 1.
     double t_  = 1.; // NN hopping amplitude
     double tp_ = -0.25; // NNN hopping amplitude
@@ -132,11 +135,15 @@ class ham1_t
     
     MFs_t MFs_;
     
+    // Methods for modifying interdependent parameters
+    void set_zerotemp();
+    void set_nonzerotemp(const double T);
+    
     // Constructor declaration
     ham1_t(const FPparams_t FPparams, const MFs_t MFs_initial, const int k1_pts, const int k2_pts);
     ~ham1_t(); // Destructor declaration
     
-    bool FixedPoint(const bool with_output=false, int*const num_loops_p=NULL, double*const mu_output=NULL, double*const energy_p=NULL);
+    bool FixedPoint(const bool with_output=false, int*const num_loops_p=NULL, double*const mu_output=NULL, double*const energy_p=NULL, complex<double>*const DeltaSC_s=NULL, complex<double>*const DeltaSC_d=NULL);
     
     std::string GetAttributes();
     

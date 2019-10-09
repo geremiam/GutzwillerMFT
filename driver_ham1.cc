@@ -159,7 +159,7 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         ham1_t ham1(FPparams, MFs_initial, k1_pts, k2_pts);
     
         // Make any initial adjustment to the parameters
-        ham1.T_  = 1.e-2;
+        ham1.set_nonzerotemp(1.e-2);
         ham1.x_  = 0.1;
         ham1.t_  = 1.;
         ham1.tp_ = -0.25;
@@ -224,7 +224,7 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
 int main(int argc, char* argv[])
 {
     pspaceA_t pspaceA;
-    int info = pspaceA.pstudy();
+    int info = pspaceA.pstudy(true);
     
     return info;
 }
