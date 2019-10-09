@@ -184,8 +184,6 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
             // Adjust phase space parameters
             ham1.x_ = x_grid[f]; // Assign value of x
             
-            ham1.resetMFs(); // Resets MFs to default starting values.
-            
             int loops=0; // Will be assigned the number of loops performed
             double mu=0.;// Will be assigned the chemical potential of the converged Ham.
             double energy=0.;

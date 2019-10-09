@@ -170,11 +170,6 @@ FPparams_t::operator const char* ()
 }
 // **************************************************************************************
 //Implementation of the class ham1_t
-void ham1_t::resetMFs()
-{
-    // Set MFs to specified values.
-    MFs_ = MFs_initial_;
-}
 
 double ham1_t::chempot_utility(const double mu_local) const
 {
@@ -411,13 +406,12 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*co
         std::cout << std::scientific << std::showpos;
     
     // Declare MFs variables and INITIALIZE THEM TO INPUT VALUES
-    MFs_t MFs_in(MFs_initial_);
+    MFs_ = MFs_initial_;
     MFs_t MFs_out(MFs_initial_);
-    double energy      = 0.;
-    double energy_prev = 0.; // For keeping track of free energy at previous step
+    double energy=0., energy_prev=0.; // For keeping track of free energy
     
-     if (with_output)
-       std::cout << MFs_in.output_format() << std::endl;
+    if (with_output)
+       std::cout << MFs_out.output_format() << std::endl; // Order of MFs in output
     
     int counter = 0; // Define counter for number of loops
     bool converged=false, fail=false; // Used to stop the while looping
@@ -425,12 +419,10 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*co
     {
         ++counter; // Increment counter
         
-        
         // Past a certain number of loops, we mix in part of the previous input vals
         // Mixing fraction mixratio (mixratio=1 corresponds to using fully new value)
         const double mixratio = FPparams_.mixratio(counter, !with_output);
         
-        //MFs_.update_values(MFs_out, mixratio);
         MFs_ = MFs_*(1.-mixratio) + MFs_out*mixratio; // Update mean-field values
         energy_prev = energy; // Store previous free energy in energy_prev
         
@@ -441,9 +433,8 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*co
           std::cout << MFs_;
         }
         
-        // Compute MFs. Output is assigned to the 'out' arguments.
-        // The HFE for the final set of MF values is assigned to the attribute *energy_p.
-        // Likewise, the final chemical potential is assigned to mu_.
+        // Compute MFs. Output is assigned to MFs_out.
+        // The chemical potential is stored in *mu_output_p. In the end, the chemical potential for the converged MFs is output.
         //ComputeMFs(rho_s_out, rho_a_out, &HFE_, &mu_);
         MFs_out = compute_MFs(mu_output_p);
         
@@ -467,6 +458,7 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*co
     
     // Unless num_loops_p is the null pointer, assign the number of loops to its location
     if (num_loops_p!=NULL) *num_loops_p = counter;
+    // The free energy for the converged MFs is assigned to *energy_p.
     if (energy_p!=NULL) *energy_p = energy;
     
     // We make sure that either converged or fail is true.
@@ -487,37 +479,6 @@ ham1_t::ham1_t(const FPparams_t FPparams, const MFs_t MFs_initial, const int k1_
     k1_pts_(k1_pts), k2_pts_(k2_pts), 
     kspace(b1_, b2_, k1_pts, k2_pts) // We do not need memory for evals or evecs
 {
-    /* Constructor implementation */
-    resetMFs(); // Sets the mean fields to default value
-    
-//     const int len_default = 13;
-//     const int   counter_vals_default [len_default] = { 10,  20,  30,  40,  50,  60,  90, 120, 150,  180,  210,  240,  270};
-//     const double mixing_vals_default [len_default] = {0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.08, 0.06, 0.04, 0.02};
-//     
-//     if (mixing_vals_len==0) // Use the default values
-//     {
-//       mixing_vals_len_ = len_default; // The default value
-//       counter_vals_ = new int [mixing_vals_len_]; // Reserve memory for arrays
-//       mixing_vals_  = new double [mixing_vals_len_];
-//       for (int i=0; i<mixing_vals_len_; ++i) // Assign values to default ones
-//       {
-//         counter_vals_[i] = counter_vals_default[i];
-//         mixing_vals_[i]  = mixing_vals_default[i];
-//       }
-//     }
-//     
-//     else // Use the user input
-//     {
-//       mixing_vals_len_ = mixing_vals_len;
-//       counter_vals_ = new int [mixing_vals_len_]; // Reserve memory for arrays
-//       mixing_vals_  = new double [mixing_vals_len_];
-//       for (int i=0; i<mixing_vals_len_; ++i) // Assign values to default ones
-//       {
-//         counter_vals_[i] = counter_vals[i];
-//         mixing_vals_[i]  = mixing_vals[i];
-//       }
-//     }
-    
     std::cout << "ham1_t instance created.\n";
 }
 
@@ -544,185 +505,6 @@ std::string ham1_t::GetAttributes()
     return Attributes;
 }
 
-// void ham1_t::ComputeMFs_old(double*const rho_s_out, double*const rho_a_out, double*const HFE_p, double*const mu_p) const
-// {
-//     // Declare (and construct) an instance of kspace_t.
-//     // *** The sum can be over the full BZ (instead of the RBZ) as long as this is 
-//     // compensated for in the calculation of the MFS and of the chemical potential. ***
-//     kspace_t kspace(a_, a_, c_, ka_pts_, kb_pts_, kc_pts_, num_bands);
-//     
-//     // Step 1: diagonalize to find all the energy evals and store them in kspace
-//     #pragma omp parallel default(none) shared(kspace)
-//     {
-//     // array to hold Ham (local to thread)
-//     complex<double>*const*const ham_array = Alloc2D_z(ham_array_rows, ham_array_cols);
-//     ValInitArray(ham_array_rows*ham_array_cols, &(ham_array[0][0])); //Initialize to zero
-//     #pragma omp for collapse(3)
-//     // Given the parameters, diagonalize the Hamiltonian at each grid point
-//     for (int i=0; i<ka_pts_; ++i)
-//       for (int j=0; j<kb_pts_; ++j)
-//         for (int k=0; k<kc_pts_; ++k)
-//         {
-//           Assign_ham(kspace.ka_grid[i], kspace.kb_grid[j], kspace.kc_grid[k], ham_array);
-//           const int index = kspace.index(i, j, k, 0); // Last index is the band index
-//           simple_zheev(num_bands, &(ham_array[0][0]), &(kspace.energies[index]));
-//         }
-//     Dealloc2D(ham_array);
-//     }
-//     
-//     // Step 2: Use all energies to compute chemical potential
-//     // WE MUST CORRECT FOR THE OVERCOUNTED BZ INTEGRATION BY INCREASING num_states AND 
-//     // filled_states BY A FACTOR OF num_harmonics. OTHERWISE, ONLY PART OF THE kspace IS
-//     // USED TO CALCULATE mu.
-//     double mu = 666.;
-//     if (zerotemp_) // (ELEMENTS GET REORDERED)
-//         mu = FermiEnerg(num_states*num_harmonics, filled_states*num_harmonics, kspace.energies);
-//     else // USES OPENMP PARALLELIZATION
-//     {
-//         const bool show_output = false;
-//         const bool usethreads = true;
-//         mu = ChemPotBisec(num_states*num_harmonics, filled_states*num_harmonics, kspace.energies, T_, show_output, usethreads);
-//     }
-//     
-//     
-//     // Step 3: Use all the occupation numbers and the evecs to find the order parameter
-//     // Probably best to diagonalize a second time to avoid storing the evecs
-//     double rho_A_accum [num_harmonics] = {0.}; // IMPORTANT: MUST BE INITIALIZED TO ZERO
-//     double rho_B_accum [num_harmonics] = {0.}; // IMPORTANT: MUST BE INITIALIZED TO ZERO
-//     
-//     #pragma omp parallel default(none) firstprivate(mu) shared(kspace) reduction(+:rho_A_accum[0:num_harmonics], rho_B_accum[0:num_harmonics])
-//     {
-//     complex<double>*const*const ham_array = Alloc2D_z(ham_array_rows, ham_array_cols); // array to hold Ham (local to thread)
-//     complex<double>*const*const     evecs = Alloc2D_z(num_bands, num_bands); // Array to hold evecs (local to each thread)
-//     double*const evals = new double [num_bands]; // Array to hold evals in second loop (local to thread)
-//     double*const  occs = new double [num_bands]; // Array to hold occupations (local to thread)
-//     ValInitArray(ham_array_rows*ham_array_cols, &(ham_array[0][0])); // Initialize to zero
-//     ValInitArray(num_bands*num_bands, &(evecs[0][0])); // Initialize to zero
-//     ValInitArray(num_bands, evals); // Initialize to zero
-//     ValInitArray(num_bands, occs); // Initialize to zero
-//     
-//     #pragma omp for collapse(3)
-//     for (int i=0; i<ka_pts_; ++i)
-//       for (int j=0; j<kb_pts_; ++j)
-//         for (int k=0; k<kc_pts_; ++k)
-//         {
-//           Assign_ham(kspace.ka_grid[i], kspace.kb_grid[j], kspace.kc_grid[k], ham_array);
-//           simple_zheev(num_bands, &(ham_array[0][0]), evals, true, &(evecs[0][0]));
-//           // Calculate occupations from energies, mu, and temperature
-//           Occupations(num_bands, mu, evals, occs, zerotemp_, T_);
-//           
-//           AddContribution_rho(occs, evecs, rho_A_accum, rho_B_accum);
-//         }
-//     delete [] occs; // Deallocate memory for arrays. 
-//     delete [] evals;
-//     Dealloc2D(evecs);
-//     Dealloc2D(ham_array);
-//     }
-//     
-//     // Assign the results to the output arrays
-//     
-//     for (int Q=0; Q<num_harmonics; ++Q)
-//     {
-//         rho_s_out[Q] = 0.5 * (rho_A_accum[Q] + rho_B_accum[Q]);
-//         rho_a_out[Q] = 0.5 * (rho_A_accum[Q] - rho_B_accum[Q]);
-//     }
-//     
-//     // The kspace_t destructor is called automatically.
-//     
-//     if (HFE_p!=NULL)
-//       *HFE_p = Helmholtz(kspace.energies, mu, rho_s_out, rho_a_out);
-//     if (mu_p!=NULL)
-//       *mu_p  = mu;
-// }
-// 
-// void ham1_t::ComputeMFs    (double*const rho_s_out, double*const rho_a_out, double*const HFE_p, double*const mu_p) const
-// {
-//     // Declare (and construct) an instance of kspace_t.
-//     // *** The sum can be over the full BZ (instead of the RBZ) as long as this is 
-//     // compensated for in the calculation of the MFS and of the chemical potential. ***
-//     const bool with_output=false; const bool with_evecs=true;
-//     kspace_t kspace(a_, a_, c_, ka_pts_, kb_pts_, kc_pts_, num_bands, with_output, with_evecs);
-//     
-//     // Step 1: diagonalize to find all the energy evals and evecs and store them in kspace
-//     #pragma omp parallel default(none) shared(kspace)
-//     {
-//     // array to hold Ham (local to thread)
-//     complex<double>*const*const ham_array = Alloc2D_z(ham_array_rows, ham_array_cols);
-//     ValInitArray(ham_array_rows*ham_array_cols, &(ham_array[0][0])); //Initialize to zero
-//     #pragma omp for collapse(3)
-//     // Given the parameters, diagonalize the Hamiltonian at each grid point
-//     for (int i=0; i<ka_pts_; ++i)
-//       for (int j=0; j<kb_pts_; ++j)
-//         for (int k=0; k<kc_pts_; ++k)
-//         {
-//           Assign_ham(kspace.ka_grid[i], kspace.kb_grid[j], kspace.kc_grid[k], ham_array);
-//           const int evals_ind = kspace.index(i, j, k, 0); // Last index is the band index
-//           const int     k_ind = kspace.k_ind(i, j, k);
-//           simple_zheev(num_bands, &(ham_array[0][0]), &(kspace.energies[evals_ind]), true, &(kspace.evecs[k_ind][0][0]));
-//         }
-//     Dealloc2D(ham_array);
-//     }
-//     
-//     // Step 2: Use all energies to compute chemical potential
-//     // WE MUST CORRECT FOR THE OVERCOUNTED BZ INTEGRATION BY INCREASING num_states AND 
-//     // filled_states BY A FACTOR OF num_harmonics. OTHERWISE, ONLY PART OF THE kspace IS
-//     // USED TO CALCULATE mu.
-//     double mu = 666.;
-//     if (zerotemp_) // Array kspace.energies is left unchanged.
-//         mu = FermiEnerg_cpy(num_states*num_harmonics, filled_states*num_harmonics, kspace.energies);
-//     else // USES OPENMP PARALLELIZATION
-//     {
-//         const bool show_output = false;
-//         const bool usethreads = true;
-//         mu = ChemPotBisec(num_states*num_harmonics, filled_states*num_harmonics, kspace.energies, T_, show_output, usethreads);
-//     }
-//     
-//     
-//     // Step 3: Use all the occupation numbers and the evecs to find the order parameter
-//     // Probably best to diagonalize a second time to avoid storing the evecs
-//     double rho_A_accum [num_harmonics] = {0.}; // IMPORTANT: MUST BE INITIALIZED TO ZERO
-//     double rho_B_accum [num_harmonics] = {0.}; // IMPORTANT: MUST BE INITIALIZED TO ZERO
-//     
-//     // https://www.nersc.gov/assets/OMP-common-core-SC17.pdf for reduction on array sections
-//     // https://www.archer.ac.uk/training/virtual/2017-09-27-OpenMP4/OpenMP45VT.pdf
-//     #pragma omp parallel default(none) firstprivate(mu) shared(kspace) reduction(+:rho_A_accum[0:num_harmonics], rho_B_accum[0:num_harmonics])
-//     {
-//     double*const  occs = new double [num_bands]; // Array to hold occupations (local to thread)
-//     ValInitArray(num_bands, occs); // Initialize to zero
-//     
-//     #pragma omp for collapse(3)
-//     for (int i=0; i<ka_pts_; ++i)
-//       for (int j=0; j<kb_pts_; ++j)
-//         for (int k=0; k<kc_pts_; ++k)
-//         {
-//           // Calculate occupations from energies, mu, and temperature
-//           const int evals_ind = kspace.index(i, j, k, 0); // Last index is the band index
-//           const int     k_ind = kspace.k_ind(i, j, k);
-//           Occupations(num_bands, mu, &(kspace.energies[evals_ind]), occs, zerotemp_, T_);
-//           AddContribution_rho(occs, kspace.evecs[k_ind], rho_A_accum, rho_B_accum);
-//         }
-//     delete [] occs; // Deallocate memory for arrays. 
-//     }
-//     
-//     // Assign the results to the output arrays
-//     for (int Q=0; Q<num_harmonics; ++Q)
-//     {
-//         rho_s_out[Q] = 0.5 * (rho_A_accum[Q] + rho_B_accum[Q]);
-//         rho_a_out[Q] = 0.5 * (rho_A_accum[Q] - rho_B_accum[Q]);
-//     }
-//     
-//     // The kspace_t destructor is called automatically.
-//     if (HFE_p!=NULL) // The free energy is assigned to HFE_p
-//       *HFE_p = Helmholtz(kspace.energies, mu, rho_s_out, rho_a_out);
-//     if (mu_p!=NULL) // The chemical potential is assigned to mu_p
-//       *mu_p  = mu;
-// }
-// 
-// 
-// 
-// 
-// 
-// 
 // 
 // // **************************************************************************************
 // // ROUTINES FOR CALCULATING THE FREE ENERGY

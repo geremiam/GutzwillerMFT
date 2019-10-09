@@ -118,11 +118,7 @@ class ham1_t
     double bisec1(const double a_in, const double b_in, const bool show_output=false) const;
     double chempot(const bool show_output=false) const;
     MFs_t  compute_MFs(double*const mu_output=NULL) const;
-    
-    
-    //void ComputeMFs_old(double*const rho_s_out, double*const rho_a_out, double*const HFE_p=NULL, double*const mu_p=NULL) const;
-    //void ComputeMFs    (double*const rho_s_out, double*const rho_a_out, double*const HFE_p=NULL, double*const mu_p=NULL) const;
-    
+        
   public:
     
     /* Settings for the iterative search */
@@ -134,8 +130,6 @@ class ham1_t
     double tp_ = -0.25; // NNN hopping amplitude
     double J_  = 1./3.; // Heisenberg repulsion
     
-    // Resets MFs to default starting values.
-    void resetMFs();
     MFs_t MFs_;
     
     // Constructor declaration
