@@ -139,7 +139,7 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         // parameter space defined above. Show output for diagnostics if with_output.
         int numfails = 0; // Tracks number of points which failed to converge after loops_lim
         
-        MFs_t MFs_initial({0.1,0.}, {0.2,0.}, {0.3,0.15}, {0.4,0.2});
+        MFs_t MFs_initial(0.1, 0.2, {0.3,0.15}, {0.4,0.2});
     
         const double tol = 1.e-6;
         const int loops_lim = 800;

@@ -25,35 +25,13 @@ using std::abs;
 
 // **************************************************************************************
 // Implementation of the class MFs_t
-MFs_t::MFs_t(complex<double> chi_s_, complex<double> chi_d_, complex<double> Delta_s_, complex<double> Delta_d_)
+MFs_t::MFs_t(double chi_s_, double chi_d_, complex<double> Delta_s_, complex<double> Delta_d_)
     :chi_s(chi_s_), chi_d(chi_d_), Delta_s(Delta_s_), Delta_d(Delta_d_)
 {}
-void MFs_t::MFs_from_array(const complex<double>*const MFs_array)
-{
-    chi_s = MFs_array[0];
-    chi_d = MFs_array[1];
-    Delta_s = MFs_array[2];
-    Delta_d = MFs_array[3];
-}
-void MFs_t::MFs_to_array(complex<double>*const MFs_array) const
-{
-    MFs_array[0] = chi_s;
-    MFs_array[1] = chi_d;
-    MFs_array[2] = Delta_s;
-    MFs_array[3] = Delta_d;
-}
-void MFs_t::update_values(const MFs_t& MFs_new, const double mixratio)
-{
-    // Update the values of the presence instance using the values of the instace MFs_new.
-    // mixratio = 1 means the values are completely new.
-    chi_s   = (1.-mixratio)*chi_s   + mixratio*MFs_new.chi_s;
-    chi_d   = (1.-mixratio)*chi_d   + mixratio*MFs_new.chi_d;
-    Delta_s = (1.-mixratio)*Delta_s + mixratio*MFs_new.Delta_s;
-    Delta_d = (1.-mixratio)*Delta_d + mixratio*MFs_new.Delta_d;
-}
 bool MFs_t::check_bound(const double bound) const
 {
-    assert(bound>0.);
+    if (bound<=0.)
+        std::cout << "\n*** WARNING: argument of method 'MFs_t::check_bound()' should be greater than zero.\n";
     return (abs(chi_s)<bound) && (abs(chi_d)<bound) && (abs(Delta_s)<bound) && (abs(Delta_d)<bound);
 }
 string MFs_t::output_format() const
@@ -355,8 +333,8 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p) const
     
     // Variables for reduction
     double                x = 0.;
-    complex<double>   chi_x = 0.;
-    complex<double>   chi_y = 0.;
+    double            chi_x = 0.;
+    double            chi_y = 0.;
     complex<double> Delta_x = 0.;
     complex<double> Delta_y = 0.;
     
@@ -398,8 +376,8 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p) const
         std::cout << "WARNING: number of marginal cases is " << marginals << " out of " 
         << num_unit_cells << ", i.e. " << 100.*marginals/num_unit_cells << "%." << std::endl;
     
-    const complex<double>   chi_s = (chi_x  +  chi_y) / 2.;
-    const complex<double>   chi_d = (chi_x  -  chi_y) / 2.;
+    const double            chi_s = (chi_x  +  chi_y) / 2.;
+    const double            chi_d = (chi_x  -  chi_y) / 2.;
     const complex<double> Delta_s = (Delta_x + Delta_y)/2.;
     const complex<double> Delta_d = (Delta_x - Delta_y)/2.;
     

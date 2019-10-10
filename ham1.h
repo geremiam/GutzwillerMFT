@@ -22,19 +22,14 @@ class MFs_t
   private:
     string output_text_; // Used in const char* casting
   public:
-    complex<double> chi_s = {0.,0.};
-    complex<double> chi_d = {0.,0.};
+    double            chi_s = 0.;
+    double            chi_d = 0.;
     complex<double> Delta_s = {0.,0.};
     complex<double> Delta_d = {0.,0.};
     
     
     // Constructor declarations
-    MFs_t(complex<double> chi_s_=0., complex<double> chi_d_=0., complex<double> Delta_s_=0., complex<double> Delta_d_=0.);
-    
-    void MFs_from_array(const complex<double>*const MFs_array);
-    void MFs_to_array(complex<double>*const MFs_array) const;
-    
-    void update_values(const MFs_t& MFs_new, const double mixratio);
+    MFs_t(double chi_s_=0., double chi_d_=0., complex<double> Delta_s_=0., complex<double> Delta_d_=0.);
     
     bool check_bound(const double bound) const;
     

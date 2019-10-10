@@ -12,14 +12,14 @@ void MFs_t_test_1()
     // Construct without arguments
     MFs_t MFs;
     
-    MFs.chi_s = {1., 2.};
+    MFs.chi_s = 1.;
     
     std::cout << MFs << std::endl;
 }
 void MFs_t_test_2()
 {
     // Construct with arguments
-    MFs_t MFs(1., 2., 3., 4.);
+    MFs_t MFs(1., 2., {3.,0.6}, {4.,0.5});
     
     std::cout << MFs << std::endl;
 }
@@ -58,8 +58,8 @@ void MFs_t_test_5()
     MFs_t MF4 = (MFs*1.2 - MF2)*0.1;
     std::cout <<  "MF4 = \t" <<  MF4 << std::endl;
     
-    //const bool is_small = MF3.check_bound(1.3);
-    //std::cout << is_small << std::endl;
+    const bool is_small = MF3.check_bound(1.3);
+    std::cout << is_small << std::endl;
 }
 
 // **************************************************************************************
