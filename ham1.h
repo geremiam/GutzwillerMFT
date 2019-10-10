@@ -117,7 +117,7 @@ class ham1_t
     bool zerotemp_ = false;
     double T_ = 0.1; // Temperature
     
-    bool   diag(const double kx, const double ky, const double mu_local, double& E_cal, double& u, complex<double>& v) const;
+    bool   diag(const double kx, const double ky, const double mu_local, double& E, double& u, complex<double>& v) const;
     double chempot_utility(const double mu_local) const;
     double bisec1(const double a_in, const double b_in, const bool show_output=false) const;
     double chempot(const bool show_output=false) const;

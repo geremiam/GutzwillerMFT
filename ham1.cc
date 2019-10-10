@@ -182,7 +182,7 @@ double ham1_t::chempot_utility(const double mu_local) const
     
     //#pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:ans, marginals)
     {
-    double      E_cal=0.;
+    double          E=0.;
     double          u=0.;
     complex<double> v=0.;
     //#pragma omp for collapse(2)
@@ -191,13 +191,13 @@ double ham1_t::chempot_utility(const double mu_local) const
       {
         const double kx = kspace.kx_grid[kspace.k_i(i,j)];
         const double ky = kspace.ky_grid[kspace.k_i(i,j)];
-        marginals += diag(kx, ky, mu_local, E_cal, u, v); // Assign values to u, v, and E_cal.
+        marginals += diag(kx, ky, mu_local, E, u, v); // Assign values to u, v, and E.
         
         double factor=0.;
         if (zerotemp_)
             factor = 1.;
         else
-            factor = 1. - 2.*nF(T_,E_cal);
+            factor = 1. - 2.*nF(T_,E);
         
         ans += (std::norm(u) - std::norm(v)) * factor / num_unit_cells;
       }
@@ -289,7 +289,7 @@ double ham1_t::chempot(const bool show_output) const
     return mu_out;
 }
 
-bool ham1_t::diag(const double kx, const double ky, const double mu_local, double& E_cal, double& u, complex<double>& v) const
+bool ham1_t::diag(const double kx, const double ky, const double mu_local, double& E, double& u, complex<double>& v) const
 {
     // Calculates three intermediate quantities at a given momentum for the current 
     // parameter values. The correct chemical potential must be given as an argument.
@@ -304,24 +304,20 @@ bool ham1_t::diag(const double kx, const double ky, const double mu_local, doubl
     // Expressions appearing in the Bloch Hamiltonian
     // ** Note that, in our case, eps_p and eps_m are one and the same. **
     const double        eps = -2.*t_* (cos(kx)+cos(ky)) - 4.*tp_*cos(kx)*cos(ky);
-    const double        f_p = -6.*J_*std::real( polar(1.,-kx)*(chi_s_+chi_d_) + polar(1.,-ky)*(chi_s_-chi_d_) );
-    const double        f_m = -6.*J_*std::real( polar(1., kx)*(chi_s_+chi_d_) + polar(1., ky)*(chi_s_-chi_d_) );
-    const complex<double> g =  6.*J_*         ( cos(kx) * (Delta_s_+Delta_d_) + cos(ky) * (Delta_s_-Delta_d_) );
+    const double          f = -3./2.*J_*std::real( cos(kx)*(chi_s_+chi_d_)       + cos(ky)*(chi_s_-chi_d_) );
+    const complex<double> g =  3./2.*J_*         ( cos(kx) * (Delta_s_+Delta_d_) + cos(ky) * (Delta_s_-Delta_d_) );
     
     // Renormalization factors
     const double g_t = 2.*x_/(1.+x_);
     const double g_S = 4./((1.+x_)*(1.+x_));
     
-    const double xi_p = g_t*eps + g_S*f_p - mu_local;
-    const double xi_m = g_t*eps + g_S*f_m - mu_local;
+    const double         xi = g_t*eps + g_S*f - mu_local;
+    const complex<double> D = g_S*g;
     
-    const complex<double> D      = g_S*g;
-    const double xi_bar = (xi_p+xi_m)/2.;
-    const double E      = sqrt( xi_bar*xi_bar + std::norm(D) ); // Remember, std::norm() gives magnitude squared.
+    E = sqrt( xi*xi + std::norm(D) ); // Remember, std::norm() gives magnitude squared.
     
-    E_cal  = (xi_p-xi_m)/2. + E;
     // Carefully handle 0./0. situations.
-    if ( (xi_bar==0.) && (E==0.) )
+    if ( (xi==0.) && (E==0.) )
     {
         u =                      std::sqrt(1./2.);
         v = - polar(1.,arg(D)) * std::sqrt(1./2.); // Expensive to find the phase factor.
@@ -329,13 +325,13 @@ bool ham1_t::diag(const double kx, const double ky, const double mu_local, doubl
     }
     else
     {
-        u =                      std::sqrt( (1.+xi_bar/E)/2. );
-        v = - polar(1.,arg(D)) * std::sqrt( (1.-xi_bar/E)/2. );
+        u =                      std::sqrt( (1.+xi/E)/2. );
+        v = - polar(1.,arg(D)) * std::sqrt( (1.-xi/E)/2. );
     }
     
     // Check for nans.
-    if (std::isnan(E_cal))
-        std::cout << "WARNING: E_cal is nan. mu_local = " << mu_local << std::endl;
+    if (std::isnan(E))
+        std::cout << "WARNING: E is nan. mu_local = " << mu_local << std::endl;
     if (std::isnan(u))
         std::cout << "WARNING: u is nan. mu_local = " << mu_local << std::endl;
     if ( std::isnan(v.real()) || std::isnan(v.imag()) )
@@ -372,19 +368,19 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p) const
       for (int j=0; j<k2_pts_; ++j)
       {
         // Variables to be assigned to
-        double      E_cal=0.;
+        double          E=0.;
         double          u=0.;
         complex<double> v=0.;
         
         const double kx = kspace.kx_grid[kspace.k_i(i,j)];
         const double ky = kspace.ky_grid[kspace.k_i(i,j)];
-        marginals += diag(kx, ky, mu_local, E_cal, u, v); // Assign values to u, v, and E_cal.
+        marginals += diag(kx, ky, mu_local, E, u, v); // Assign values to u, v, and E.
         
         double factor=0.;
         if (zerotemp_)
             factor = 1. / num_unit_cells;
         else
-            factor = (1.-2.*nF(T_, E_cal)) / num_unit_cells;
+            factor = (1.-2.*nF(T_, E)) / num_unit_cells;
         
         x       +=         factor *           (std::norm(u)-std::norm(v));
         chi_x   += - 0.5 * factor * cos(kx) * (std::norm(u)-std::norm(v));
