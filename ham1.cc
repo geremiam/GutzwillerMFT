@@ -221,7 +221,11 @@ double ham1_t::bisec1(const double a_in, const double b_in, const bool show_outp
       std::cout << "WARNING: function \"bisec\" requires a_in<b_in." << std::endl;
     // Make sure there is a zero between the two inputs.
     if ( !(chempot_utility(a_in)*chempot_utility(b_in)<0.) )
-      std::cout << "WARNING: the function does not change sign between a_in and b_in." << std::endl;
+    {
+      std::cout << "\nWARNING: the function does not change sign between a_in and b_in." << std::endl;
+      std::cout << "a = " << a_in << ",\tb = " << b_in << "\n";
+      std::cout << "f(a) = " << chempot_utility(a_in) << ",\tf(b) = " << chempot_utility(b_in) << "\n";
+    }
     const bool increasing = (chempot_utility(a_in) < chempot_utility(b_in)); // Determine if the function is increasing
     
     // Starting values for a and b. Choose them slightly outside the energy range to be safe.
@@ -385,8 +389,8 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p) const
         x       +=         factor *           (std::norm(u)-std::norm(v));
         chi_x   += - 0.5 * factor * cos(kx) * (std::norm(u)-std::norm(v));
         chi_y   += - 0.5 * factor * cos(ky) * (std::norm(u)-std::norm(v));
-        Delta_x +=   0.5 * factor * cos(kx) * u * v; // Needs to be tested
-        Delta_y +=   0.5 * factor * cos(ky) * u * v; // Needs to be tested
+        Delta_x += -       factor * cos(kx) * u * v; // Needs to be tested
+        Delta_y += -       factor * cos(ky) * u * v; // Needs to be tested
       }
     }
     

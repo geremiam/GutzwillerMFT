@@ -142,14 +142,14 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         MFs_t MFs_initial({0.1,0.}, {0.2,0.}, {0.3,0.15}, {0.4,0.2});
     
         const double tol = 1.e-6;
-        const int loops_lim = 320;
+        const int loops_lim = 800;
         const int mixing_vals_len = 7;
-        const int   counter_vals [mixing_vals_len] = { 40,  80,  120,  160,  200, 240, 280};
+        const int   counter_vals [mixing_vals_len] = {100, 200, 300, 400, 500, 600, 700};
         const double mixing_vals [mixing_vals_len] = {0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3};
         FPparams_t FPparams(tol, loops_lim, mixing_vals_len, counter_vals, mixing_vals);
     
-        const int k1_pts = 150;//502; // Choose twice a prime number for grid resolution
-        const int k2_pts = 150;//502;
+        const int k1_pts = 298;//502; // Choose twice a prime number for grid resolution
+        const int k2_pts = 298;//502;
         
         string GlobalAttr; // String in which to save the global attributes.
         
@@ -199,7 +199,7 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
             chi_s_grid  [idx(f)] = ham1.MFs_.chi_s;
             chi_d_grid  [idx(f)] = ham1.MFs_.chi_d;
             Delta_s_grid[idx(f)] = ham1.MFs_.Delta_s;
-            Delta_d_grid[idx(f)] = ham1.MFs_.Delta_s;
+            Delta_d_grid[idx(f)] = ham1.MFs_.Delta_d;
             
             energy_grid[idx(f)] = energy;
             mu_grid    [idx(f)] = mu;
