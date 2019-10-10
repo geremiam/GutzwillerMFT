@@ -274,16 +274,16 @@ bool ham1_t::diag(const double kx, const double ky, const double mu_local, doubl
     
     bool marginal = false; // Signals marginal cases, where we set |u|^2 = |v|^2 = 1/2.
     
-    const complex<double>& chi_s_ = MFs_.chi_s;
-    const complex<double>& chi_d_ = MFs_.chi_d;
+    const double&          chi_s_ = MFs_.chi_s;
+    const double&          chi_d_ = MFs_.chi_d;
     const complex<double>& Delta_s_ = MFs_.Delta_s;
     const complex<double>& Delta_d_ = MFs_.Delta_d;
     
     // Expressions appearing in the Bloch Hamiltonian
     // ** Note that, in our case, eps_p and eps_m are one and the same. **
     const double        eps = -2.*t_* (cos(kx)+cos(ky)) - 4.*tp_*cos(kx)*cos(ky);
-    const double          f = -3./2.*J_*std::real( cos(kx)*(chi_s_+chi_d_)       + cos(ky)*(chi_s_-chi_d_) );
-    const complex<double> g =  3./2.*J_*         ( cos(kx) * (Delta_s_+Delta_d_) + cos(ky) * (Delta_s_-Delta_d_) );
+    const double          f = -3./2.*J_*( cos(kx)*(chi_s_+chi_d_)     + cos(ky)*(chi_s_-chi_d_) );
+    const complex<double> g =  3./2.*J_*( cos(kx)*(Delta_s_+Delta_d_) + cos(ky)*(Delta_s_-Delta_d_) );
     
     // Renormalization factors
     const double g_t = 2.*x_/(1.+x_);

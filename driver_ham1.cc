@@ -38,8 +38,8 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
     
     // Variables for MF parameters. We store them in 1D arrays. The index keeps track of 
     // the point in parameter space (using the method index()).
-    complex<double>*const chi_s_grid;
-    complex<double>*const chi_d_grid;
+    double*const chi_s_grid;
+    double*const chi_d_grid;
     complex<double>*const Delta_s_grid;
     complex<double>*const Delta_d_grid;
     
@@ -50,8 +50,8 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
     // Constructor declaration
     pspaceA_t()
         :x_grid    (new double [x_pts]), // Coord vars
-         chi_s_grid  (new complex<double> [parspace_pts]), // Vars
-         chi_d_grid  (new complex<double> [parspace_pts]),
+         chi_s_grid  (new double          [parspace_pts]), // Vars
+         chi_d_grid  (new double          [parspace_pts]),
          Delta_s_grid(new complex<double> [parspace_pts]),
          Delta_d_grid(new complex<double> [parspace_pts]),
          loops_grid  (new int             [parspace_pts]),
@@ -110,7 +110,7 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         
         const size_t vars_num = 4; // Variables other than coord variables
         string var_names [vars_num] = {"chi_s", "chi_d", "Delta_s", "Delta_d"}; // List for the variable names
-        bool var_complex [vars_num] = {true,    true,    true,      true}; // List for indicating whether vars are complex
+        bool var_complex [vars_num] = {  false,   false,      true,      true}; // List for indicating whether vars are complex
         
         // Constructor for the dataset class creates a dataset
         newDS_t newDS(dims_num, dim_names, dim_lengths, vars_num, var_names, var_complex, GlobalAttr, path);
@@ -122,8 +122,7 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         newDS.WriteCoordVar(0, x_grid); // Write "default" coordinate variables
         
         // List for holding the pointers to the vars
-        double* vars [vars_num] = {reinterpret_cast<double*const>(chi_s_grid), 
-                                   reinterpret_cast<double*const>(chi_d_grid), 
+        double* vars [vars_num] = {chi_s_grid, chi_d_grid, 
                                    reinterpret_cast<double*const>(Delta_s_grid), 
                                    reinterpret_cast<double*const>(Delta_d_grid)};
         newDS.WriteVars(vars); // Write the variables
