@@ -28,8 +28,8 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
     
   public:
     // x
-    const size_t x_pts = 11;
-    const double x_bounds [2] = {0.01, 0.201};
+    const size_t x_pts = 61;
+    const double x_bounds [2] = {0.01, 0.31};
     
     const int parspace_pts = x_pts;
     
@@ -42,6 +42,8 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
     double*const chi_d_grid;
     complex<double>*const Delta_s_grid;
     complex<double>*const Delta_d_grid;
+    complex<double>*const DeltaSC_s_grid;
+    complex<double>*const DeltaSC_d_grid;
     
     int   *const loops_grid; // holds the number of loops done at each point
     double*const energy_grid; // Holds the MF energy for later comparison
@@ -54,6 +56,8 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
          chi_d_grid  (new double          [parspace_pts]),
          Delta_s_grid(new complex<double> [parspace_pts]),
          Delta_d_grid(new complex<double> [parspace_pts]),
+         DeltaSC_s_grid(new complex<double> [parspace_pts]),
+         DeltaSC_d_grid(new complex<double> [parspace_pts]),
          loops_grid  (new int             [parspace_pts]),
          energy_grid (new double          [parspace_pts]),
          mu_grid     (new double          [parspace_pts]) // Important -- Note order
@@ -84,6 +88,8 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         delete [] chi_d_grid;
         delete [] Delta_s_grid;
         delete [] Delta_d_grid;
+        delete [] DeltaSC_s_grid;
+        delete [] DeltaSC_d_grid;
         delete [] loops_grid;
         delete [] energy_grid;
         delete [] mu_grid;
@@ -108,9 +114,9 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         const string dim_names [dims_num] = {"x"};
         const size_t dim_lengths [dims_num] = {x_pts};
         
-        const size_t vars_num = 4; // Variables other than coord variables
-        string var_names [vars_num] = {"chi_s", "chi_d", "Delta_s", "Delta_d"}; // List for the variable names
-        bool var_complex [vars_num] = {  false,   false,      true,      true}; // List for indicating whether vars are complex
+        const size_t vars_num = 6; // Variables other than coord variables
+        string var_names [vars_num] = {"chi_s", "chi_d", "Delta_s", "Delta_d", "DeltaSC_s", "DeltaSC_d"}; // List for the variable names
+        bool var_complex [vars_num] = {  false,   false,      true,      true,        true,        true}; // List for indicating whether vars are complex
         
         // Constructor for the dataset class creates a dataset
         newDS_t newDS(dims_num, dim_names, dim_lengths, vars_num, var_names, var_complex, GlobalAttr, path);
@@ -124,7 +130,9 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         // List for holding the pointers to the vars
         double* vars [vars_num] = {chi_s_grid, chi_d_grid, 
                                    reinterpret_cast<double*const>(Delta_s_grid), 
-                                   reinterpret_cast<double*const>(Delta_d_grid)};
+                                   reinterpret_cast<double*const>(Delta_d_grid),
+                                   reinterpret_cast<double*const>(DeltaSC_s_grid), 
+                                   reinterpret_cast<double*const>(DeltaSC_d_grid)};
         newDS.WriteVars(vars); // Write the variables
         
         newDS.WriteLoops(loops_grid); // Write loops variable
@@ -138,7 +146,7 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         // parameter space defined above. Show output for diagnostics if with_output.
         int numfails = 0; // Tracks number of points which failed to converge after loops_lim
         
-        MFs_t MFs_initial(0.1, 0.2, {0.3,0.15}, {0.4,0.2});
+        MFs_t MFs_initial(0.1, 0., {0.,0.}, {0.1,0.});
     
         const double tol = 1.e-6;
         const int loops_lim = 800;
@@ -161,8 +169,8 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         ham1.set_nonzerotemp(1.e-2);
         ham1.x_  = 0.1;
         ham1.t_  = 1.;
-        ham1.tp_ = -0.25;
-        ham1.J_  = 1./3.;
+        ham1.tp_ = 0.;
+        ham1.J_  = 1./5.;
         
         #pragma omp single
         {
@@ -186,7 +194,9 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
             int loops=0; // Will be assigned the number of loops performed
             double mu=0.;// Will be assigned the chemical potential of the converged Ham.
             double energy=0.;
-            const bool fail = ham1.FixedPoint(with_output, &loops, &mu, &energy);
+            complex<double> DeltaSC_s=0.;
+            complex<double> DeltaSC_d=0.;
+            const bool fail = ham1.FixedPoint(with_output, &loops, &mu, &energy, &DeltaSC_s, &DeltaSC_d);
             
             if (fail) // Print current params
             {
@@ -200,9 +210,11 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
             Delta_s_grid[idx(f)] = ham1.MFs_.Delta_s;
             Delta_d_grid[idx(f)] = ham1.MFs_.Delta_d;
             
-            energy_grid[idx(f)] = energy;
-            mu_grid    [idx(f)] = mu;
-            loops_grid [idx(f)] = loops; // Save the number of loops to array.
+            DeltaSC_s_grid[idx(f)] = DeltaSC_s;
+            DeltaSC_d_grid[idx(f)] = DeltaSC_d;
+            energy_grid   [idx(f)] = energy;
+            mu_grid       [idx(f)] = mu;
+            loops_grid    [idx(f)] = loops; // Save the number of loops to array.
             
             if (with_output) std::cout << std::endl;
         }
@@ -223,7 +235,7 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
 int main(int argc, char* argv[])
 {
     pspaceA_t pspaceA;
-    int info = pspaceA.pstudy(true);
+    int info = pspaceA.pstudy();
     
     return info;
 }
