@@ -332,14 +332,14 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p) const
     int marginals = 0;
     
     // Variables for reduction
-    double                x = 0.;
-    double            chi_x = 0.;
-    double            chi_y = 0.;
-    complex<double> Delta_x = 0.;
-    complex<double> Delta_y = 0.;
+    double                x_out = 0.;
+    double            chi_x_out = 0.;
+    double            chi_y_out = 0.;
+    complex<double> Delta_x_out = 0.;
+    complex<double> Delta_y_out = 0.;
     
     //#pragma omp declare reduction(+:complex<double>:omp_out+=omp_in) // Must declare reduction on complex numbers
-    //#pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:x, chi_x, chi_y, Delta_x, Delta_y, marginals)
+    //#pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:x_out, chi_x_out, chi_y_out, Delta_x_out, Delta_y_out, marginals)
     {
     //#pragma omp for collapse(2)
     for (int i=0; i<k1_pts_; ++i)
@@ -360,28 +360,28 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p) const
         else
             factor = (1.-2.*nF(T_, E)) / num_unit_cells;
         
-        x       +=         factor *           (std::norm(u)-std::norm(v));
-        chi_x   += - 0.5 * factor * cos(kx) * (std::norm(u)-std::norm(v));
-        chi_y   += - 0.5 * factor * cos(ky) * (std::norm(u)-std::norm(v));
-        Delta_x += -       factor * cos(kx) * u * v; // Needs to be tested
-        Delta_y += -       factor * cos(ky) * u * v; // Needs to be tested
+        x_out       +=         factor *           (std::norm(u)-std::norm(v));
+        chi_x_out   += - 0.5 * factor * cos(kx) * (std::norm(u)-std::norm(v));
+        chi_y_out   += - 0.5 * factor * cos(ky) * (std::norm(u)-std::norm(v));
+        Delta_x_out += -       factor * cos(kx) * u * v; // Needs to be tested
+        Delta_y_out += -       factor * cos(ky) * u * v; // Needs to be tested
       }
     }
     
-    if (abs(x-x_)>1.e-14)
+    if (abs(x_out-x_)>1.e-14)
         std::cout << "\nWARNING: output holedoping does not match input holedoping."
-                  << "\nx-x_ = " << x-x_ << std::endl;
+                  << "\nx_out-x_ = " << x_out-x_ << std::endl;
     
     if (marginals!=0)
         std::cout << "WARNING: number of marginal cases is " << marginals << " out of " 
         << num_unit_cells << ", i.e. " << 100.*marginals/num_unit_cells << "%." << std::endl;
     
-    const double            chi_s = (chi_x  +  chi_y) / 2.;
-    const double            chi_d = (chi_x  -  chi_y) / 2.;
-    const complex<double> Delta_s = (Delta_x + Delta_y)/2.;
-    const complex<double> Delta_d = (Delta_x - Delta_y)/2.;
+    const double            chi_s_out = (chi_x_out  +  chi_y_out) / 2.;
+    const double            chi_d_out = (chi_x_out  -  chi_y_out) / 2.;
+    const complex<double> Delta_s_out = (Delta_x_out + Delta_y_out)/2.;
+    const complex<double> Delta_d_out = (Delta_x_out - Delta_y_out)/2.;
     
-    MFs_t MFs_out(chi_s, chi_d, Delta_s, Delta_d);
+    MFs_t MFs_out(chi_s_out, chi_d_out, Delta_s_out, Delta_d_out);
     
     return MFs_out;
 }
