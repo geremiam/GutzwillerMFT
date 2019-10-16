@@ -112,6 +112,7 @@ class ham1_t
     bool zerotemp_ = false;
     double T_ = 0.1; // Temperature
     
+    // Useful internal methods
     double disp(const double kx, const double ky) const;
     double g_t() const;
     double g_S() const;
@@ -123,27 +124,22 @@ class ham1_t
     MFs_t  compute_MFs(double*const mu_output=NULL, double*const kin_energy_p=NULL) const;
         
   public:
-    
-    /* Settings for the iterative search */
+    // Constructor and destructor declarations
+    ham1_t(const FPparams_t FPparams, const MFs_t MFs_initial, const int k1_pts, const int k2_pts);
+    ~ham1_t();
     
     // Hamiltonian parameters that the user may want to change
     double x_ = 0.1; // Hole doping; between -1 and 1.
     double t_  = 1.; // NN hopping amplitude
     double tp_ = -0.25; // NNN hopping amplitude
     double J_  = 1./3.; // Heisenberg repulsion
-    
-    MFs_t MFs_;
-    
     // Methods for modifying interdependent parameters
     void set_zerotemp();
     void set_nonzerotemp(const double T);
     
-    // Constructor declaration
-    ham1_t(const FPparams_t FPparams, const MFs_t MFs_initial, const int k1_pts, const int k2_pts);
-    ~ham1_t(); // Destructor declaration
+    MFs_t MFs_; // Used to store the current MF values
     
     bool FixedPoint(const bool with_output=false, int*const num_loops_p=NULL, double*const mu_output=NULL, double*const energy_p=NULL, complex<double>*const DeltaSC_s=NULL, complex<double>*const DeltaSC_d=NULL);
-    
     std::string GetAttributes();
 };
 

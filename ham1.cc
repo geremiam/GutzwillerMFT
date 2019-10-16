@@ -158,7 +158,7 @@ double ham1_t::g_S() const
 }
 double ham1_t::disp(const double kx, const double ky) const
 {
-    return -2.*t_* (cos(kx)+cos(ky)) - 4.*tp_*cos(kx)*cos(ky);
+    return -2.*t_* (cos(kx)+cos(ky)) - 4.*tp_*cos(kx)*cos(ky); // Dispersion relation
 }
 
 double ham1_t::chempot_utility(const double mu_local) const
@@ -281,8 +281,9 @@ double ham1_t::chempot(const bool show_output) const
 
 bool ham1_t::diag(const double kx, const double ky, const double mu_local, double& E, double& u, complex<double>& v) const
 {
-    // Calculates three intermediate quantities at a given momentum for the current 
-    // parameter values. The correct chemical potential must be given as an argument.
+    // Calculates the three intermediate quantities u(k), v(k), and E(k) at a given 
+    // momentum for the current parameter values. The correct chemical potential must be 
+    // given as an argument.
     
     bool marginal = false; // Signals marginal cases, where we set |u|^2 = |v|^2 = 1/2.
     
@@ -327,13 +328,15 @@ bool ham1_t::diag(const double kx, const double ky, const double mu_local, doubl
 
 MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p) const
 {
-    // Step 1: calculate chemical potential for these parameters
+    // Calculates the output MFs from the current value of the input MFs and parameters.
+    // Optionally outputs the chemical potential and the (zero-temperature) energy.
+    
+    // Step 1: calculate chemical potential for these parameters and MFs
     const double mu_local = chempot();
     if (mu_output_p!=NULL)
         *mu_output_p = mu_local; // Assign the computed value to mu_output_p
     
     // Step 2: calculate MFs using chemical potential
-    // To be called after the correct mu is found and assigned.
     
     // Tracks the number of marginal cases within the BZ, where we set |u|^2 = |v|^2 = 1/2.
     int marginals = 0;
@@ -347,7 +350,7 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p) const
     double           kin_energy = 0.; // Kinetic energy per unit cell
     
     //#pragma omp declare reduction(+:complex<double>:omp_out+=omp_in) // Must declare reduction on complex numbers
-    //#pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:x_out, chi_x_out, chi_y_out, Delta_x_out, Delta_y_out, marginals)
+    //#pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:x_out, chi_x_out, chi_y_out, Delta_x_out, Delta_y_out, kin_energy, marginals)
     {
     //#pragma omp for collapse(2)
     for (int i=0; i<k1_pts_; ++i)
@@ -385,7 +388,7 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p) const
         std::cout << "WARNING: number of marginal cases is " << marginals << " out of " 
         << num_unit_cells << ", i.e. " << 100.*marginals/num_unit_cells << "%." << std::endl;
     
-    // Energy calculation. Direct terms do not contribute.
+    // Energy calculation. Direct terms do not contribute. Valid at zero temperature.
     const double exch_energy = -3./2. * J_ * (std::norm(chi_x_out)   + std::norm(chi_y_out));
     const double pair_energy = -3./2. * J_ * (std::norm(Delta_x_out) + std::norm(Delta_y_out));
     if (energy_p!=NULL)
@@ -403,19 +406,19 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p) const
 
 bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*const mu_output_p, double*const energy_p, complex<double>*const DeltaSC_s, complex<double>*const DeltaSC_d)
 {
-    // Performs the iterative self-consistent search using the parameters from ham1. 
-    // The initial values of the MF attributes are used as the starting values for the 
-    // search; the end values are also stored in these same MF attributes.
+    // Performs the iterative self-consistent search using the current parameters.
+    // The values in MFs_initial_ are used as the starting values for the search; the end 
+    // values are left in MFs_.
     if (with_output) // Format display output and set precision
         std::cout << std::scientific << std::showpos;
     
     // Declare MFs variables and INITIALIZE THEM TO INPUT VALUES
     MFs_ = MFs_initial_;
     MFs_t MFs_out(MFs_initial_);
-    double energy=0., energy_prev=0.; // For keeping track of free energy
+    double energy=0.; // For keeping track of free energy
     
     if (with_output)
-       std::cout << MFs_out.output_format() << std::endl; // Order of MFs in output
+       std::cout << MFs_out.output_format() << std::endl; // Shows order of MFs in output
     
     int counter = 0; // Define counter for number of loops
     bool converged=false, fail=false; // Used to stop the while looping
@@ -428,7 +431,7 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*co
         const double mixratio = FPparams_.mixratio(counter, !with_output);
         
         MFs_ = MFs_*(1.-mixratio) + MFs_out*mixratio; // Update mean-field values
-        energy_prev = energy; // Store previous free energy in energy_prev
+        const double energy_prev = energy; // Store previous free energy in energy_prev
         
         
         if (with_output)
@@ -437,9 +440,8 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*co
           std::cout << MFs_;
         }
         
-        // Compute MFs. Output is assigned to MFs_out.
-        // The chemical potential is stored in *mu_output_p. In the end, the chemical potential for the converged MFs is output.
-        //ComputeMFs(rho_s_out, rho_a_out, &HFE_, &mu_);
+        // Compute MFs. Output is assigned to MFs_out. The chemical potential is stored in 
+        // *mu_output_p. In the end, the chemical potential for the converged MFs is output.
         MFs_out = compute_MFs(mu_output_p, &energy);
         
         if (with_output)
@@ -492,7 +494,6 @@ ham1_t::~ham1_t()
     std::cout << "ham1_t instance deleted.\n";
 }
 
-
 std::string ham1_t::GetAttributes()
 {
     // Define a string of metadata
@@ -508,7 +509,6 @@ std::string ham1_t::GetAttributes()
     
     return Attributes;
 }
-
 void ham1_t::set_zerotemp()
 {
     zerotemp_ = true;
