@@ -148,7 +148,14 @@ FPparams_t::operator const char* ()
 }
 // **************************************************************************************
 //Implementation of the class ham1_t
-
+double ham1_t::g_t() const
+{
+    return 2.*x_/(1.+x_); // Renormalization factor for kinetic energy
+}
+double ham1_t::g_S() const
+{
+    return 4./((1.+x_)*(1.+x_)); // Renormalization factor for interacting energy
+}
 double ham1_t::disp(const double kx, const double ky) const
 {
     return -2.*t_* (cos(kx)+cos(ky)) - 4.*tp_*cos(kx)*cos(ky);
@@ -285,17 +292,12 @@ bool ham1_t::diag(const double kx, const double ky, const double mu_local, doubl
     const complex<double>& Delta_d_ = MFs_.Delta_d;
     
     // Expressions appearing in the Bloch Hamiltonian
-    // ** Note that, in our case, eps_p and eps_m are one and the same. **
     const double        eps = disp(kx,ky);
     const double          f = -3./2.*J_*( cos(kx)*(chi_s_+chi_d_)     + cos(ky)*(chi_s_-chi_d_) );
     const complex<double> g =  3./2.*J_*( cos(kx)*(Delta_s_+Delta_d_) + cos(ky)*(Delta_s_-Delta_d_) );
     
-    // Renormalization factors
-    const double g_t = 2.*x_/(1.+x_);
-    const double g_S = 4./((1.+x_)*(1.+x_));
-    
-    const double         xi = g_t*eps + g_S*f - mu_local;
-    const complex<double> D = g_S*g;
+    const double         xi = g_t()*eps + g_S()*f - mu_local;
+    const complex<double> D = g_S()*g;
     
     E = sqrt( xi*xi + std::norm(D) ); // Remember, std::norm() gives magnitude squared.
     
@@ -384,12 +386,10 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p) const
         << num_unit_cells << ", i.e. " << 100.*marginals/num_unit_cells << "%." << std::endl;
     
     // Energy calculation. Direct terms do not contribute.
-    const double g_t = 2.*x_/(1.+x_);
-    const double g_S = 4./((1.+x_)*(1.+x_));
     const double exch_energy = -3./2. * J_ * (std::norm(chi_x_out)   + std::norm(chi_y_out));
     const double pair_energy = -3./2. * J_ * (std::norm(Delta_x_out) + std::norm(Delta_y_out));
     if (energy_p!=NULL)
-      *energy_p = g_t*kin_energy + g_S*(exch_energy+pair_energy); // Assign to pointed value
+      *energy_p = g_t()*kin_energy + g_S()*(exch_energy+pair_energy); // Assign to pointed value
     
     const double            chi_s_out = (chi_x_out  +  chi_y_out) / 2.;
     const double            chi_d_out = (chi_x_out  -  chi_y_out) / 2.;
@@ -465,9 +465,8 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*co
     // The free energy for the converged MFs is assigned to *energy_p.
     if (energy_p!=NULL) *energy_p = energy;
     // Calculate the full SC order parameter and assign it, if applicable
-    const double g_t = 2.*x_/(1.+x_);
-    if (DeltaSC_s!=NULL) *DeltaSC_s = g_t * MFs_.Delta_s;
-    if (DeltaSC_d!=NULL) *DeltaSC_d = g_t * MFs_.Delta_d;
+    if (DeltaSC_s!=NULL) *DeltaSC_s = g_t() * MFs_.Delta_s;
+    if (DeltaSC_d!=NULL) *DeltaSC_d = g_t() * MFs_.Delta_d;
     
     // We make sure that one of "converged" or "fail" is true.
     assert(converged != fail);
