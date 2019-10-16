@@ -112,11 +112,12 @@ class ham1_t
     bool zerotemp_ = false;
     double T_ = 0.1; // Temperature
     
+    double disp(const double kx, const double ky) const;
     bool   diag(const double kx, const double ky, const double mu_local, double& E, double& u, complex<double>& v) const;
     double chempot_utility(const double mu_local) const;
     double bisec1(const double a_in, const double b_in, const bool show_output=false) const;
     double chempot(const bool show_output=false) const;
-    MFs_t  compute_MFs(double*const mu_output=NULL) const;
+    MFs_t  compute_MFs(double*const mu_output=NULL, double*const kin_energy_p=NULL) const;
         
   public:
     

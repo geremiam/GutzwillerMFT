@@ -149,6 +149,11 @@ FPparams_t::operator const char* ()
 // **************************************************************************************
 //Implementation of the class ham1_t
 
+double ham1_t::disp(const double kx, const double ky) const
+{
+    return -2.*t_* (cos(kx)+cos(ky)) - 4.*tp_*cos(kx)*cos(ky);
+}
+
 double ham1_t::chempot_utility(const double mu_local) const
 {
     // Function whose zero gives the "correct" value of mu.
@@ -281,7 +286,7 @@ bool ham1_t::diag(const double kx, const double ky, const double mu_local, doubl
     
     // Expressions appearing in the Bloch Hamiltonian
     // ** Note that, in our case, eps_p and eps_m are one and the same. **
-    const double        eps = -2.*t_* (cos(kx)+cos(ky)) - 4.*tp_*cos(kx)*cos(ky);
+    const double        eps = disp(kx,ky);
     const double          f = -3./2.*J_*( cos(kx)*(chi_s_+chi_d_)     + cos(ky)*(chi_s_-chi_d_) );
     const complex<double> g =  3./2.*J_*( cos(kx)*(Delta_s_+Delta_d_) + cos(ky)*(Delta_s_-Delta_d_) );
     
@@ -318,7 +323,7 @@ bool ham1_t::diag(const double kx, const double ky, const double mu_local, doubl
     return marginal;
 }
 
-MFs_t ham1_t::compute_MFs(double*const mu_output_p) const
+MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p) const
 {
     // Step 1: calculate chemical potential for these parameters
     const double mu_local = chempot();
@@ -337,6 +342,7 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p) const
     double            chi_y_out = 0.;
     complex<double> Delta_x_out = 0.;
     complex<double> Delta_y_out = 0.;
+    double           kin_energy = 0.; // Kinetic energy per unit cell
     
     //#pragma omp declare reduction(+:complex<double>:omp_out+=omp_in) // Must declare reduction on complex numbers
     //#pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:x_out, chi_x_out, chi_y_out, Delta_x_out, Delta_y_out, marginals)
@@ -365,6 +371,7 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p) const
         chi_y_out   += - 0.5 * factor * cos(ky) * (std::norm(u)-std::norm(v));
         Delta_x_out += -       factor * cos(kx) * u * v; // Needs to be tested
         Delta_y_out += -       factor * cos(ky) * u * v; // Needs to be tested
+        kin_energy  += -       factor * disp(kx,ky) * (std::norm(u)-std::norm(v));
       }
     }
     
@@ -375,6 +382,14 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p) const
     if (marginals!=0)
         std::cout << "WARNING: number of marginal cases is " << marginals << " out of " 
         << num_unit_cells << ", i.e. " << 100.*marginals/num_unit_cells << "%." << std::endl;
+    
+    // Energy calculation. Direct terms do not contribute.
+    const double g_t = 2.*x_/(1.+x_);
+    const double g_S = 4./((1.+x_)*(1.+x_));
+    const double exch_energy = -3./2. * J_ * (std::norm(chi_x_out)   + std::norm(chi_y_out));
+    const double pair_energy = -3./2. * J_ * (std::norm(Delta_x_out) + std::norm(Delta_y_out));
+    if (energy_p!=NULL)
+      *energy_p = g_t*kin_energy + g_S*(exch_energy+pair_energy); // Assign to pointed value
     
     const double            chi_s_out = (chi_x_out  +  chi_y_out) / 2.;
     const double            chi_d_out = (chi_x_out  -  chi_y_out) / 2.;
@@ -425,7 +440,7 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*co
         // Compute MFs. Output is assigned to MFs_out.
         // The chemical potential is stored in *mu_output_p. In the end, the chemical potential for the converged MFs is output.
         //ComputeMFs(rho_s_out, rho_a_out, &HFE_, &mu_);
-        MFs_out = compute_MFs(mu_output_p);
+        MFs_out = compute_MFs(mu_output_p, &energy);
         
         if (with_output)
           std::cout << "|  " << energy << std::endl;
