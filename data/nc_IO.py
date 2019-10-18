@@ -35,7 +35,7 @@ def nc_read_var(filename, varname):
         
     return var, var_dims, coord_vars
 
-def nc_read(file):
+def nc_read(file, show_coordvars=False):
     """ Reads a simple format of NetCDF datasets with n dimensions (each having a 
     coordinate variable) and m (non-coordinate) variables. The dimension names and 
     lengths, the coordinate variables, the variable names and the variables are returned. 
@@ -59,6 +59,9 @@ def nc_read(file):
         for dimname in f.dimensions:
             if (dimname in f.variables):
                 coord_vars[dimname] = f.variables[dimname][:].copy()
-        print("Coordinate variables found: {}".format(coord_vars))
+        if (show_coordvars):
+            print("Coordinate variables found: {}".format(coord_vars))
+        else:
+            print("Coordinate variables found: {}".format(coord_vars.keys()))
         
     return vars_dict, dims_dict, coord_vars
