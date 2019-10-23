@@ -1,28 +1,25 @@
 # Makefile
 # Automates the compilation and building of the MFT solver. See documentation on Implicit Rules.
 
-# Compiler name
+# Compiler name. Can override from command line.
 CXX=icpc# C++ compiler; used in implicit rules.
 CC=$(CXX)# C compiler; is used as the linker in implicit rules.
-# Compiler flags (add -fopenmp to compilation and linking for OpenMP). Used in implicit compiling rules.
-CXXFLAGS=-std=c++14 -O3 -xHost -DMKL_ILP64 -I${MKLROOT}/include -I${NETCDF_LIB} -qopenmp
+# Compiler flags. Used in implicit compiling rules.
+CXXFLAGS=-std=c++14 -O2 -I${NETCDF_LIB}
 # Linker flags (add -fopenmp to compilation and linking for OpenMP). Used in implicit linking rules.
-LDFLAGS=-L${MKLROOT}/lib -Wl,-rpath,${MKLROOT}/lib -L${NETCDF_LIB} -qopenmp
-LDLIBS=-lmkl_intel_ilp64 -lmkl_intel_thread -lmkl_core -liomp5 -lpthread -lm -ldl -lnetcdf
+LDFLAGS=-L${NETCDF_LIB}
+LDLIBS=-lnetcdf
 
-# Compiler name
-#CXX=g++-9
-# Flags for including in path search
-#INC_FLAGS=-I${LAPACKE_INC} -I${NETCDF_INC}
-# Compiler flags (add -fopenmp to compilation and linking for OpenMP)
-#CXXFLAGS=-std=c++14 $(INC_FLAGS)
-# Linker flags (add -fopenmp to compilation and linking for OpenMP)
-#LDLIBS=-llapacke -lnetcdf
-# Flags for linking with libraries (place after all object files)
-#LDFLAGS=-L${LAPACKE_LIB} -L${NETCDF_LIB} $(LDLIBS)
+ifeq ($(CXX), icpc) # For the Intel compiler
+  CXXFLAGS += -xHost -qopenmp
+  LDFLAGS  += -qopenmp
+else # For the gnu compiler
+  CXXFLAGS += -march=native -fopenmp
+  LDFLAGS  += -fopenmp
+endif
 
 # List of object files and header files belonging to modules
-MODULES=ticktock alloc array_init IO kspace math diag ncio
+MODULES=ticktock alloc array_init IO kspace math ncio# diag
 HEADERS=$(patsubst %,%.h,$(MODULES))
 OBJECTS=$(patsubst %,%.o,$(MODULES))
 TESTS=$(patsubst %,%_test,$(MODULES))

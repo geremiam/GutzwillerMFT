@@ -11,10 +11,7 @@
 #include "alloc.h" // Allocation/deallocation of arrays
 #include "array_init.h" // Initialization of arrays
 #include "math.h" // Various math functions
-//#include "misc_routines.h"
-//#include "chempot.h"
 #include "kspace.h" // Defines a class for holding a band structure
-#include "diag.h" // Routines for finding evals and evecs
 #include "ham1.h" // Include header file for consistency check
 //using std::cos; using std::sin; using std::conj; // Not sure if these are necessary
 using std::polar;
@@ -380,7 +377,7 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p) const
       }
     }
     
-    if (abs(x_out-x_)>1.e-14)
+    if (abs(x_out-x_)>2.e-14)
         std::cout << "\nWARNING: output holedoping does not match input holedoping."
                   << "\nx_out-x_ = " << x_out-x_ << std::endl;
     
