@@ -160,7 +160,9 @@ class pspaceA_t { // Filling varied with interaction strength and temp held cons
         
         string GlobalAttr; // String in which to save the global attributes.
         
-        #pragma omp parallel default(none) shared(FPparams,MFs_initial,GlobalAttr,with_output,std::cout) reduction(+:numfails)
+        // Must declare 'const' variables as firstprivate for compatibility with new gcc 
+        // versions. See https://gcc.gnu.org/gcc-9/porting_to.html#ompdatasharing.
+        #pragma omp parallel default(none) shared(FPparams,MFs_initial,GlobalAttr,std::cout) firstprivate(with_output) reduction(+:numfails)
         {
         // Declare and construct an instance of ham1_t
         ham1_t ham1(FPparams, MFs_initial, k1_pts, k2_pts);
@@ -378,7 +380,9 @@ class pspaceB_t { // Filling varied with interaction strength and temp held cons
         
         string GlobalAttr; // String in which to save the global attributes.
         
-        #pragma omp parallel default(none) shared(FPparams,MFs_initial,GlobalAttr,std::cout) reduction(+:numfails)
+        // Must declare 'const' variables as firstprivate for compatibility with new gcc 
+        // versions. See https://gcc.gnu.org/gcc-9/porting_to.html#ompdatasharing.
+        #pragma omp parallel default(none) shared(FPparams,MFs_initial,GlobalAttr,std::cout) firstprivate(with_output) reduction(+:numfails)
         {
         // Declare and construct an instance of ham1_t
         ham1_t ham1(FPparams, MFs_initial, k1_pts, k2_pts);
@@ -454,7 +458,7 @@ class pspaceB_t { // Filling varied with interaction strength and temp held cons
 
 int main(int argc, char* argv[])
 {
-    pspaceA_t pspace;
+    pspaceB_t pspace;
     int info = pspace.pstudy(false);
     
     return info;
