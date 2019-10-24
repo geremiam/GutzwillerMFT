@@ -401,7 +401,9 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p) const
     return MFs_out;
 }
 
-bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*const mu_output_p, double*const energy_p, complex<double>*const DeltaSC_s, complex<double>*const DeltaSC_d)
+bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*const mu_output_p, double*const energy_p, 
+                        complex<double>*const DeltaSC_s, complex<double>*const DeltaSC_d, 
+                        double*const optweight_xx, double*const optweight_yy)
 {
     // Performs the iterative self-consistent search using the current parameters.
     // The values in MFs_initial_ are used as the starting values for the search; the end 
@@ -466,6 +468,8 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*co
     // Calculate the full SC order parameter and assign it, if applicable
     if (DeltaSC_s!=NULL) *DeltaSC_s = g_t() * MFs_.Delta_s;
     if (DeltaSC_d!=NULL) *DeltaSC_d = g_t() * MFs_.Delta_d;
+    if (optweight_xx!=NULL) *optweight_xx = g_t() * 2. * M_PI * t_ * (MFs_.chi_s+MFs_.chi_d);
+    if (optweight_yy!=NULL) *optweight_yy = g_t() * 2. * M_PI * t_ * (MFs_.chi_s-MFs_.chi_d);
     
     // We make sure that one of "converged" or "fail" is true.
     assert(converged != fail);

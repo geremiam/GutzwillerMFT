@@ -139,7 +139,9 @@ class ham1_t
     
     MFs_t MFs_; // Used to store the current MF values
     
-    bool FixedPoint(const bool with_output=false, int*const num_loops_p=NULL, double*const mu_output=NULL, double*const energy_p=NULL, complex<double>*const DeltaSC_s=NULL, complex<double>*const DeltaSC_d=NULL);
+    bool FixedPoint(const bool with_output=false, int*const num_loops_p=NULL, double*const mu_output=NULL, double*const energy_p=NULL, 
+                    complex<double>*const DeltaSC_s=NULL, complex<double>*const DeltaSC_d=NULL,
+                    double*const optweight_xx=NULL, double*const optweight_yy=NULL);
     std::string GetAttributes();
 };
 

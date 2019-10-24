@@ -18,7 +18,6 @@ using std::string;
 
 // Classes that define parameter spaces for this Hamiltonian
 
-
 class pspaceA_t { // Filling varied with interaction strength and temp held constant
   private:
     // Private copy constructor (prohibits copy creation)
@@ -259,6 +258,8 @@ class pspaceB_t { // Filling varied with interaction strength and temp held cons
     complex<double>*const Delta_d_grid;
     complex<double>*const DeltaSC_s_grid;
     complex<double>*const DeltaSC_d_grid;
+    double*const optweight_xx_grid;
+    double*const optweight_yy_grid;
     
     int   *const loops_grid; // holds the number of loops done at each point
     double*const energy_grid; // Holds the MF energy for later comparison
@@ -274,6 +275,8 @@ class pspaceB_t { // Filling varied with interaction strength and temp held cons
          Delta_d_grid(new complex<double> [parspace_pts]),
          DeltaSC_s_grid(new complex<double> [parspace_pts]),
          DeltaSC_d_grid(new complex<double> [parspace_pts]),
+         optweight_xx_grid(new double [parspace_pts]),
+         optweight_yy_grid(new double [parspace_pts]),
          loops_grid  (new int             [parspace_pts]),
          energy_grid (new double          [parspace_pts]),
          mu_grid     (new double          [parspace_pts]) // Important -- Note order
@@ -291,6 +294,8 @@ class pspaceB_t { // Filling varied with interaction strength and temp held cons
         ValInitArray(parspace_pts, chi_d_grid,   -99.);//Init to unlikely value
         ValInitArray(parspace_pts, Delta_s_grid, -99.);//Init to unlikely value
         ValInitArray(parspace_pts, Delta_d_grid, -99.);//Init to unlikely value
+        ValInitArray(parspace_pts, optweight_xx_grid, -99.);//Init to unlikely value
+        ValInitArray(parspace_pts, optweight_yy_grid, -99.);//Init to unlikely value
         ValInitArray(parspace_pts, loops_grid,     -1); // Initialize to 0
         ValInitArray(parspace_pts, energy_grid,  -99.);
         ValInitArray(parspace_pts, mu_grid,       -9.);
@@ -308,6 +313,8 @@ class pspaceB_t { // Filling varied with interaction strength and temp held cons
         delete [] Delta_d_grid;
         delete [] DeltaSC_s_grid;
         delete [] DeltaSC_d_grid;
+        delete [] optweight_xx_grid;
+        delete [] optweight_yy_grid;
         delete [] loops_grid;
         delete [] energy_grid;
         delete [] mu_grid;
@@ -332,9 +339,9 @@ class pspaceB_t { // Filling varied with interaction strength and temp held cons
         const string dim_names [dims_num] = {"tp", "x"};
         const size_t dim_lengths [dims_num] = {tp_pts, x_pts};
         
-        const size_t vars_num = 6; // Variables other than coord variables
-        string var_names [vars_num] = {"chi_s", "chi_d", "Delta_s", "Delta_d", "DeltaSC_s", "DeltaSC_d"}; // List for the variable names
-        bool var_complex [vars_num] = {  false,   false,      true,      true,        true,        true}; // List for indicating whether vars are complex
+        const size_t vars_num = 8; // Variables other than coord variables
+        string var_names [vars_num] = {"chi_s", "chi_d", "Delta_s", "Delta_d", "DeltaSC_s", "DeltaSC_d", "optweight_xx", "optweight_yy"}; // List for the variable names
+        bool var_complex [vars_num] = {  false,   false,      true,      true,        true,        true,          false,          false}; // List for indicating whether vars are complex
         
         // Constructor for the dataset class creates a dataset
         newDS_t newDS(dims_num, dim_names, dim_lengths, vars_num, var_names, var_complex, GlobalAttr, path);
@@ -352,7 +359,9 @@ class pspaceB_t { // Filling varied with interaction strength and temp held cons
                                    reinterpret_cast<double*const>(Delta_s_grid), 
                                    reinterpret_cast<double*const>(Delta_d_grid),
                                    reinterpret_cast<double*const>(DeltaSC_s_grid), 
-                                   reinterpret_cast<double*const>(DeltaSC_d_grid)};
+                                   reinterpret_cast<double*const>(DeltaSC_d_grid),
+                                   optweight_xx_grid,
+                                   optweight_yy_grid};
         newDS.WriteVars(vars); // Write the variables
         
         newDS.WriteLoops(loops_grid); // Write loops variable
@@ -421,7 +430,9 @@ class pspaceB_t { // Filling varied with interaction strength and temp held cons
             double energy=0.;
             complex<double> DeltaSC_s=0.;
             complex<double> DeltaSC_d=0.;
-            const bool fail = ham1.FixedPoint(with_output, &loops, &mu, &energy, &DeltaSC_s, &DeltaSC_d);
+            double optweight_xx=0.;
+            double optweight_yy=0.;
+            const bool fail = ham1.FixedPoint(with_output, &loops, &mu, &energy, &DeltaSC_s, &DeltaSC_d, &optweight_xx, &optweight_yy);
             
             if (fail) // Print current params
             {
@@ -435,11 +446,13 @@ class pspaceB_t { // Filling varied with interaction strength and temp held cons
             Delta_s_grid[idx(tp_idx,x_idx)] = ham1.MFs_.Delta_s;
             Delta_d_grid[idx(tp_idx,x_idx)] = ham1.MFs_.Delta_d;
             
-            DeltaSC_s_grid[idx(tp_idx,x_idx)] = DeltaSC_s;
-            DeltaSC_d_grid[idx(tp_idx,x_idx)] = DeltaSC_d;
-            energy_grid   [idx(tp_idx,x_idx)] = energy;
-            mu_grid       [idx(tp_idx,x_idx)] = mu;
-            loops_grid    [idx(tp_idx,x_idx)] = loops; // Save the number of loops to array.
+            DeltaSC_s_grid   [idx(tp_idx,x_idx)] = DeltaSC_s;
+            DeltaSC_d_grid   [idx(tp_idx,x_idx)] = DeltaSC_d;
+            optweight_xx_grid[idx(tp_idx,x_idx)] = optweight_xx;
+            optweight_yy_grid[idx(tp_idx,x_idx)] = optweight_yy;
+            energy_grid      [idx(tp_idx,x_idx)] = energy;
+            mu_grid          [idx(tp_idx,x_idx)] = mu;
+            loops_grid       [idx(tp_idx,x_idx)] = loops; // Save the number of loops to array.
             
             if (with_output) std::cout << std::endl;
         }
