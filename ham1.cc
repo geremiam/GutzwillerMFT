@@ -323,7 +323,7 @@ bool ham1_t::diag(const double kx, const double ky, const double mu_local, doubl
     return marginal;
 }
 
-MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p) const
+MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p, double*const optweight_xx_p, double*const optweight_yy_p) const
 {
     // Calculates the output MFs from the current value of the input MFs and parameters.
     // Optionally outputs the chemical potential and the (zero-temperature) energy.
@@ -345,6 +345,8 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p) const
     complex<double> Delta_x_out = 0.;
     complex<double> Delta_y_out = 0.;
     double           kin_energy = 0.; // Kinetic energy per unit cell
+    double         optweight_xx = 0.;
+    double         optweight_yy = 0.;
     
     //#pragma omp declare reduction(+:complex<double>:omp_out+=omp_in) // Must declare reduction on complex numbers
     //#pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:x_out, chi_x_out, chi_y_out, Delta_x_out, Delta_y_out, kin_energy, marginals)
@@ -368,12 +370,14 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p) const
         else
             factor = (1.-2.*nF(T_, E)) / num_unit_cells;
         
-        x_out       +=         factor *           (std::norm(u)-std::norm(v));
-        chi_x_out   += - 0.5 * factor * cos(kx) * (std::norm(u)-std::norm(v));
-        chi_y_out   += - 0.5 * factor * cos(ky) * (std::norm(u)-std::norm(v));
-        Delta_x_out += -       factor * cos(kx) * u * v;
-        Delta_y_out += -       factor * cos(ky) * u * v;
-        kin_energy  += -       factor * disp(kx,ky) * (std::norm(u)-std::norm(v));
+        x_out       +=                factor * (std::norm(u)-std::norm(v));
+        chi_x_out   += - 0.5        * factor * (std::norm(u)-std::norm(v)) * cos(kx);
+        chi_y_out   += - 0.5        * factor * (std::norm(u)-std::norm(v)) * cos(ky);
+        Delta_x_out += -              factor * u * v                       * cos(kx);
+        Delta_y_out += -              factor * u * v                       * cos(ky);
+        kin_energy  += -              factor * (std::norm(u)-std::norm(v)) * disp(kx,ky);
+        optweight_xx+= - 0.5 * M_PI * factor * (std::norm(u)-std::norm(v)) * ( 2.*t_*cos(kx) + 4.*tp_*cos(kx)*cos(ky) );
+        optweight_yy+= - 0.5 * M_PI * factor * (std::norm(u)-std::norm(v)) * ( 2.*t_*cos(ky) + 4.*tp_*cos(kx)*cos(ky) );
       }
     }
     
@@ -391,6 +395,10 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p) const
     if (energy_p!=NULL)
       *energy_p = g_t()*kin_energy + g_S()*(exch_energy+pair_energy); // Assign to pointed value
     
+    // Assign optical weight values
+    if (optweight_xx_p!=NULL) *optweight_xx_p = optweight_xx;
+    if (optweight_yy_p!=NULL) *optweight_yy_p = optweight_yy;
+    
     const double            chi_s_out = (chi_x_out  +  chi_y_out) / 2.;
     const double            chi_d_out = (chi_x_out  -  chi_y_out) / 2.;
     const complex<double> Delta_s_out = (Delta_x_out + Delta_y_out)/2.;
@@ -403,7 +411,7 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p) const
 
 bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*const mu_output_p, double*const energy_p, 
                         complex<double>*const DeltaSC_s, complex<double>*const DeltaSC_d, 
-                        double*const optweight_xx, double*const optweight_yy)
+                        double*const optweight_xx_p, double*const optweight_yy_p)
 {
     // Performs the iterative self-consistent search using the current parameters.
     // The values in MFs_initial_ are used as the starting values for the search; the end 
@@ -441,7 +449,7 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*co
         
         // Compute MFs. Output is assigned to MFs_out. The chemical potential is stored in 
         // *mu_output_p. In the end, the chemical potential for the converged MFs is output.
-        MFs_out = compute_MFs(mu_output_p, &energy);
+        MFs_out = compute_MFs(mu_output_p, &energy, optweight_xx_p, optweight_yy_p);
         
         if (with_output)
           std::cout << "|  " << energy << std::endl;
@@ -468,8 +476,6 @@ bool ham1_t::FixedPoint(const bool with_output, int*const num_loops_p, double*co
     // Calculate the full SC order parameter and assign it, if applicable
     if (DeltaSC_s!=NULL) *DeltaSC_s = g_t() * MFs_.Delta_s;
     if (DeltaSC_d!=NULL) *DeltaSC_d = g_t() * MFs_.Delta_d;
-    if (optweight_xx!=NULL) *optweight_xx = g_t() * 2. * M_PI * t_ * (MFs_.chi_s+MFs_.chi_d);
-    if (optweight_yy!=NULL) *optweight_yy = g_t() * 2. * M_PI * t_ * (MFs_.chi_s-MFs_.chi_d);
     
     // We make sure that one of "converged" or "fail" is true.
     assert(converged != fail);
