@@ -110,7 +110,8 @@ class ham1_t
     
     // Parameters that the user must modify via methods because they are interdependent
     bool zerotemp_ = false;
-    double T_ = 0.1; // Temperature
+    double T_ = 5.e-3; // Temperature. 
+    // This seems to be a low enough temperature for the zero-T energy formulas to be approximately right.
     
     // Useful internal methods
     double disp(const double kx, const double ky) const;
