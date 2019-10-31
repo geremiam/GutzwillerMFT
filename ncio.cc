@@ -6,6 +6,7 @@
 #include "ncio.h" // Include header file for consistency check
 
 // Documentation: https://www.unidata.ucar.edu/software/netcdf/netcdf-4/newdocs/netcdf-c/
+// http://nagyak.eastron.hu/doc/netcdf/netcdf-c.html#nc_005fdef_005fvar
 
 // Internal routine declarations
 std::string DateTime();

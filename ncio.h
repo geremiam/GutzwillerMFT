@@ -3,6 +3,7 @@
 // Module for creating a netCDF dataset in which all variables are defined on the same 
 // dimensions. Complex variables are dealt with by using an additional dimension called 
 // "complex". Pruning functionality allows smart handling of dimensions of length 1.
+// http://nagyak.eastron.hu/doc/netcdf/netcdf-c.html#nc_005fdef_005fvar
 
 #ifndef NCIO_H
 #define NCIO_H
