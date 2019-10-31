@@ -19,22 +19,29 @@ private:
     // Private assignment operator (prohibits assignment)
     const newDS_t& operator=(const newDS_t&);
     
+    int ncid_=-99; // ID for dataset
+    int*const dimid_; // Array of IDs for dimensions.
+    int*const dimid_relevant_; // Array of "relevant" dimension IDs. Different from dimid_ if prune_==true and there are length-1 dimensions.
+    // The last one (after user-added dims) is complex dim, as has to be the case because 
+    // complex numbers are stored with real and imaginary parts in consecutive addresses in 
+    // memory.
+    
     const size_t dims_num_; // Number of dimensions
+          size_t dims_num_relevant_=-1; // Number of relevant dimensions. Different from dims_num_ if prune==true and there are length-1 dimensions.
+          size_t*const dim_lengths_; // To be copied from input
     const size_t vars_num_; // Number of variables
+    
     
     const bool prune_; // Activates pruning of length-1 dimensions
     
-    // (A given element of coord_varid_ is used only if the user supplies a coord vaar for that dimension)
+    // (A given element of coord_varid_ is used only if the user supplies a coord var for that dimension)
     int*const coord_varid_; // Array of IDs for coord vars. Length dims_num_.
     int*const varid_; // Array of IDs for user-defined variables. Length vars_num_.
     int varid_loops_=-99; // ID for numloops variable
     
+    void find_relevant_dimensions(); // Used to assign values to dimid_relevant_ from dimid_.
+    
 public:
-    int ncid_=-99; // ID for dataset
-    int*const dimid_; // Array of IDs for dimensions.
-    // The last one (after user-added dims) is complex dim, as has to be the case because 
-    // complex numbers are stored with real and imaginary parts in consecutive addresses in 
-    // memory.
     
     // Constructor declaration
     newDS_t(const size_t dims_num, const std::string*const dim_names, const size_t*const dim_lengths,
