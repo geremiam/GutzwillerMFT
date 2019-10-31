@@ -152,12 +152,13 @@ class pspace_t {
         // We define parameters required to create the dataset. Don't forget to adjust these depending on the parameter space defined above. 
         // Important: Note that the order of the variables must be kept consistent.
         
-        const size_t vars_num = 8; // Variables to be saved other than coord variables
-        string var_names [vars_num] = {"chi_s", "chi_d", "Delta_s", "Delta_d", "DeltaSC_s", "DeltaSC_d", "optweight_xx", "optweight_yy"}; // List for the variable names
-        bool var_complex [vars_num] = {  false,   false,      true,      true,        true,        true,          false,          false}; // List for indicating whether vars are complex
+        const size_t vars_num = 10; // Variables to be saved other than coord variables
+        string var_names [vars_num] = {"chi_s", "chi_d", "Delta_s", "Delta_d", "DeltaSC_s", "DeltaSC_d", "optweight_xx", "optweight_yy", "mu", "energy"}; // List for the variable names
+        bool var_complex [vars_num] = { false,  false,   true,      true,      true,        true,        false,          false,          false, false}; // List for indicating whether vars are complex
         
         // Constructor for the dataset class creates a dataset
-        newDS_t newDS(dims_num, dim_names, dim_lengths_, vars_num, var_names, var_complex, GlobalAttr, path);
+        const bool prune = true; // Activates pruning of length-1 dimensions.
+        newDS_t newDS(dims_num, dim_names, dim_lengths_, vars_num, var_names, var_complex, GlobalAttr, path, prune);
         
         // Define coordinate variables. Order matters.
         for (int i=0; i<dims_num; ++i)
@@ -175,13 +176,12 @@ class pspace_t {
                                    reinterpret_cast<double*const>(Delta_d_grid),
                                    reinterpret_cast<double*const>(DeltaSC_s_grid), 
                                    reinterpret_cast<double*const>(DeltaSC_d_grid),
-                                   optweight_xx_grid,
-                                   optweight_yy_grid};
+                                   optweight_xx_grid, optweight_yy_grid,
+                                   mu_grid,
+                                   energy_grid};
         newDS.WriteVars(vars); // Write the variables
         
         newDS.WriteLoops(loops_grid); // Write loops variable
-        newDS.WriteEnergy(energy_grid); // Write energy variable
-        newDS.Writemu(mu_grid); // Write mu variable
     }
     
     int pstudy(const MFs_t MFs_initial, FPparams_t FPparams, const int k1_pts = 298, const int k2_pts = 298, const bool with_output = false)
