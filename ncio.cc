@@ -80,14 +80,19 @@ void newDS_t::DefCoordVar(const int dimindex, const std::string name)
     else if ( (dim_lengths_[dimindex]!=1) || !prune_ ) // If dim doesn't have length 1 or prune==false, define bona fide coord var.
       ErrorHandler( nc_def_var(ncid_, name.c_str(), NC_DOUBLE, 1, &(dimid_[dimindex]), &(coord_varid_[dimindex])) );
     else // Otherwise, define a scalar var.
-      ErrorHandler( nc_def_var(ncid_, name.c_str(), NC_DOUBLE, 0, NULL, &(coord_varid_[dimindex])) );
+      ErrorHandler( nc_def_var(ncid_, name.c_str(), NC_DOUBLE, 0, NULL,                &(coord_varid_[dimindex])) );
 }
 
 int newDS_t::DefCoordVar_custom(const int dimindex, const std::string name)
 {
     // Definition of individual coord variables whose ID the user keeps track of.
     int coord_varid=-99;
-    ErrorHandler( nc_def_var(ncid_, name.c_str(), NC_DOUBLE, 1, &(dimid_[dimindex]), &coord_varid) );
+    
+    if ( (dim_lengths_[dimindex]!=1) || !prune_ ) // If dim doesn't have length 1 or prune==false, define bona fide coord var.
+      ErrorHandler( nc_def_var(ncid_, name.c_str(), NC_DOUBLE, 1, &(dimid_[dimindex]), &coord_varid) );
+    else
+      ErrorHandler( nc_def_var(ncid_, name.c_str(), NC_DOUBLE, 0, NULL,                &coord_varid) );
+    
     return coord_varid;
 }
 
