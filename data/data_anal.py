@@ -43,7 +43,7 @@ def find_vars(varname, dims_dict):
     
     return vars_to_plot
 
-def grid_plot(rows, numplots, **kwargs):
+def create_gridplot(rows, numplots, **kwargs):
     """ Outputs a grid of subplots given the number of subplots needed as well as the 
     desired number of rows. Also returns the number of columns. """
     # Plotting commands
@@ -109,7 +109,7 @@ def single_lineplot(plotting_dims, tup, coord_vars, varname, var):
 def multip_colorplot(plotting_dims, tup, coord_vars, vars_to_plot, vars_dict, rows=2):
     horiz_extent, vert_extent = colorplor_extents(plotting_dims, coord_vars)
     
-    fig, axes, cols = grid_plot(rows, len(vars_to_plot), sharex='all', sharey='all')
+    fig, axes, cols = create_gridplot(rows, len(vars_to_plot), sharex='all', sharey='all')
     for idx, val in enumerate(vars_to_plot):
         Labels = [plotting_dims[0], plotting_dims[1], val] # Axis labels
         plot_routines.ColorPlot(fig, axes.flatten(order='F')[idx], vars_dict[val][tup], Labels, horiz_extent, vert_extent)
@@ -131,7 +131,7 @@ def multip_lineplot(plotting_dims, tup, coord_vars, vars_to_plot, vars_dict, row
     else: # Otherwise just plot vs. index
         horiz_axis = range(len(var[tup]))
     
-    fig, axes, cols = grid_plot(rows, len(vars_to_plot), sharex='all')
+    fig, axes, cols = create_gridplot(rows, len(vars_to_plot), sharex='all')
     for idx, val in enumerate(vars_to_plot):
         Labels = [plotting_dims[0], val] # Axis labels
         
@@ -145,7 +145,7 @@ def multip_lineplot(plotting_dims, tup, coord_vars, vars_to_plot, vars_dict, row
     return
 
 
-def main(filename, varname, input_dims, same, display=True, save=True):
+def main(filename, varname, input_dims, all, save):
     print() # Linebreak
     
     # "coord_vars" is a dictionary containing coordinate variables
@@ -161,7 +161,7 @@ def main(filename, varname, input_dims, same, display=True, save=True):
     # Check that either one or two dims were chosen for plotting
     assert (len(plotting_dims)==1 or len(plotting_dims)==2), "Number of plotting dimensions should be 1 or 2."
     
-    if (same):
+    if (all):
         # Get all the vars that share the same dimensions as "varname"
         vars_to_plot = find_vars(varname, dims_dict)
         
@@ -180,7 +180,7 @@ def main(filename, varname, input_dims, same, display=True, save=True):
     plt.tight_layout()
     if (save):
         plt.savefig(filename+".pdf",bbox_inches='tight')
-    if (display):
+    else:
         plt.show()
     
     return
@@ -194,20 +194,12 @@ if __name__ == "__main__":
     parser.add_argument('dimensions', type=lambda s: [item for item in s.split(',')],
                         help='Comma-separated list of dimension indices to plot. Either one \
                         or two of these should be a "p", which indicates a plotting dimension.')
-    parser.add_argument('-s', '--same', action='store_true', 
+    parser.add_argument('-a', '--all', action='store_true', 
                         help='Plot all variables in the dataset defined on the same \
                         dimensions as "variable"')
-    parser.add_argument('-m', '--mode', choices=['d','s','b'], default='d',
-                        help='Set mode: "d" is for "display", "s" is for "save", and "b" is for "both".')
+    parser.add_argument('-s', '--save', action='store_true', 
+                        help='Saves the figure instead of displaying it.')
     
     args = parser.parse_args()
     
-    # Determine whether the plot is to be displayed and/or saved
-    display = True
-    save    = True
-    if (args.mode=='d'):
-        save    = False
-    elif (args.mode=='s'):
-        display = False
-    
-    main(args.filename, args.variable, args.dimensions, args.same, display, save)
+    main(args.filename, args.variable, args.dimensions, args.all, args.save)
