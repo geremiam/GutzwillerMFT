@@ -33,25 +33,6 @@ def indexing_tuple(input_dims, var_dims):
     tup = tuple(input_dims) # Redefine as tuple
     return tup, plotting_dims
 
-def colorplor_extents(plotting_dims, coord_vars):
-    assert (len(plotting_dims) == 2), "Function 'colorplor_extents' assumes two plotting dimensions."
-    # Define the extents of the axes if they have coordinate variables
-    if (plotting_dims[0] in coord_vars):
-        X = coord_vars[plotting_dims[0]]
-        dx = (X[1] - X[0])/2.
-        horiz_extent = (X[0]-dx, X[-1]+dx)
-    else:
-        horiz_extent = () # Leads to default behaviour
-    
-    if (plotting_dims[1] in coord_vars):
-        Y = coord_vars[plotting_dims[1]]
-        dy = (Y[1] - Y[0])/2.
-        vert_extent = (Y[0]-dy, Y[-1]+dy)
-    else:
-        vert_extent = () # Leads to default behaviour
-    
-    return horiz_extent, vert_extent
-
 # Functions for the "multip" routines
 def find_vars(varname, dims_dict):
     """ Finds all variables defined on the same dimensions as "var". """
@@ -78,6 +59,25 @@ def grid_plot(rows, numplots, **kwargs):
     return fig, axes, cols
 
 # Plotting functions
+def colorplor_extents(plotting_dims, coord_vars):
+    assert (len(plotting_dims) == 2), "Function 'colorplor_extents' assumes two plotting dimensions."
+    # Define the extents of the axes if they have coordinate variables
+    if (plotting_dims[0] in coord_vars):
+        X = coord_vars[plotting_dims[0]]
+        dx = (X[1] - X[0])/2.
+        horiz_extent = (X[0]-dx, X[-1]+dx)
+    else:
+        horiz_extent = () # Leads to default behaviour
+    
+    if (plotting_dims[1] in coord_vars):
+        Y = coord_vars[plotting_dims[1]]
+        dy = (Y[1] - Y[0])/2.
+        vert_extent = (Y[0]-dy, Y[-1]+dy)
+    else:
+        vert_extent = () # Leads to default behaviour
+    
+    return horiz_extent, vert_extent
+
 def single_colorplot(plotting_dims, tup, coord_vars, varname, var):
     horiz_extent, vert_extent = colorplor_extents(plotting_dims, coord_vars)
     
@@ -97,7 +97,7 @@ def single_lineplot(plotting_dims, tup, coord_vars, varname, var):
     else: # Otherwise just plot vs. index
         horiz_axis = range(len(var[tup]))
     
-    fig, ax, cols = grid_plot(1,1, sharex='all')
+    fig, ax = plt.subplots(1,1, sharex='all')
     
     Labels = [plotting_dims[0], varname] # Axis labels
     
@@ -149,7 +149,7 @@ def main(filename, varname, input_dims, same, display=True, save=True):
     print() # Linebreak
     
     # "coord_vars" is a dictionary containing coordinate variables
-    vars_dict, dims_dict, coord_vars = nc_IO.nc_read(filename) # Get data
+    dims, vars_dict, dims_dict, coord_vars = nc_IO.nc_read(filename) # Get data
     var      = vars_dict[varname] # Get the requested variable
     var_dims = dims_dict[varname] # "var_dims" is a tuple with the dims on which the var is defined
     

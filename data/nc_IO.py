@@ -36,7 +36,7 @@ def nc_read_var(filename, varname):
         
     return var, var_dims, coord_vars
 
-def nc_read(file, show_coordvars=False):
+def nc_read(file, process_complex=True, show_coordvars=False):
     """ Reads a simple format of NetCDF datasets with n dimensions (each having a 
     coordinate variable) and m (non-coordinate) variables. The dimension names and 
     lengths, the coordinate variables, the variable names and the variables are returned. 
@@ -44,32 +44,50 @@ def nc_read(file, show_coordvars=False):
     adequate for very large datasets. """
     np.set_printoptions(linewidth=1000)
     
+    # Define dictionaries to hold vars and their respective dimensions
+    vars_dict = OrderedDict()
+    dims_dict = OrderedDict()
+    
     with netcdf.netcdf_file(file, 'r') as f: # Open the NetCDF file
-        print("Dimensions of the dataset: {}".format(f.dimensions)) # Print all dims
+        dim_lens = f.dimensions # All dimensions of the dataset
+        print("Dimensions of the dataset: {}".format(dim_lens)) # Print all dims
         
-        # Define dictionaries to hold vars and their respective dimensions
-        vars_dict = OrderedDict()
-        dims_dict = OrderedDict()
-        
+        ### Variables and their respective dimensions
         for el in f.variables:
             vars_dict[el] = f.variables[el].data.copy() # Copy the variable data into memory
             dims_dict[el] = f.variables[el].dimensions # Store the dimensions of each var
         
-        # Look for coordinate variables for the plotting dimensions
-        coord_vars = {}
-        for dimname in f.dimensions:
-            if (dimname in f.variables):
-                coord_vars[dimname] = f.variables[dimname].data.copy()
-        if (show_coordvars):
-            print("Coordinate variables found: {}".format(coord_vars))
-        else:
-            print("Coordinate variables found: {}".format(coord_vars.keys()))
-        
-    return vars_dict, dims_dict, coord_vars
+    ### Coordinate variables
+    # Look for coordinate variables for the plotting dimensions
+    coord_vars = {}
+    for dimname in dim_lens:
+        if (dimname in vars_dict):
+            coord_vars[dimname] = vars_dict[dimname]
+    if (show_coordvars):
+        print("Coordinate variables found: {}".format(coord_vars))
+    else:
+        print("Coordinate variables found: {}".format(coord_vars.keys()))
+    
+    ### Process complex dimensions (if applicable)
+    if ( list(dim_lens.keys())[-1] == 'complex' and process_complex):
+        dim_lens.popitem(last=True) # Get rid of complex dimension
+        for key in dims_dict: # Goes through all varialbes
+            if ( dims_dict[key]!=() ): # Checks the dimensionality is nonzero
+                if (dims_dict[key][-1]=='complex'): # Checks if the last dimension is 'complex'
+                    # Redefine as a complex array
+                    vars_dict[key] = vars_dict[key][...,0] + 1.j*vars_dict[key][...,1]
+                    # Get rid of complex dimension
+                    dims_dict[key] = dims_dict[key][0:-1]
+    
+    
+    return dim_lens, vars_dict, dims_dict, coord_vars
 
 if __name__ == "__main__":
     if len(argv)>1:
-        vars_dict, dims_dict, coord_vars = nc_read(argv[1], show_coordvars=False)
-        print('\n{}'.format( vars_dict ))
+        dim_lens, vars_dict, dims_dict, coord_vars = nc_read(argv[1], process_complex=True, show_coordvars=False)
+        print('\n{}'.format( dim_lens ))
+        print('\n{}'.format( vars_dict.keys() ))
         print('\n{}'.format( dims_dict ))
         print('\n{}'.format( coord_vars ))
+        
+        print(vars_dict['Delta_d'][0,:])
