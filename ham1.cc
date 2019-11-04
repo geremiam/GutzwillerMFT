@@ -345,8 +345,8 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p, doubl
     complex<double> Delta_x_out = 0.;
     complex<double> Delta_y_out = 0.;
     double           kin_energy = 0.; // Kinetic energy per unit cell
-    double         optweight_xx = 0.;
-    double         optweight_yy = 0.;
+    double                 T_xx = 0.;
+    double                 T_yy = 0.;
     
     //#pragma omp declare reduction(+:complex<double>:omp_out+=omp_in) // Must declare reduction on complex numbers
     //#pragma omp parallel default(none) firstprivate(mu_local) shared(T_,num_unit_cells,k1_pts_,k2_pts_,kspace) reduction(+:x_out, chi_x_out, chi_y_out, Delta_x_out, Delta_y_out, kin_energy, marginals)
@@ -376,8 +376,8 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p, doubl
         Delta_x_out += -              factor * u * v                       * cos(kx);
         Delta_y_out += -              factor * u * v                       * cos(ky);
         kin_energy  += -              factor * (std::norm(u)-std::norm(v)) * disp(kx,ky);
-        optweight_xx+= - 0.5 * M_PI * factor * (std::norm(u)-std::norm(v)) * ( 2.*t_*cos(kx) + 4.*tp_*cos(kx)*cos(ky) );
-        optweight_yy+= - 0.5 * M_PI * factor * (std::norm(u)-std::norm(v)) * ( 2.*t_*cos(ky) + 4.*tp_*cos(kx)*cos(ky) );
+        T_xx        +=                factor * (std::norm(u)-std::norm(v)) * ( 2.*t_*cos(kx) + 4.*tp_*cos(kx)*cos(ky) ); // E.V. of operator T_xx in the MF state
+        T_yy        +=                factor * (std::norm(u)-std::norm(v)) * ( 2.*t_*cos(ky) + 4.*tp_*cos(kx)*cos(ky) ); // E.V. of operator T_yy in the MF state
       }
     }
     
@@ -396,8 +396,8 @@ MFs_t ham1_t::compute_MFs(double*const mu_output_p, double*const energy_p, doubl
       *energy_p = g_t()*kin_energy + g_S()*(exch_energy+pair_energy); // Assign to pointed value
     
     // Assign optical weight values
-    if (optweight_xx_p!=NULL) *optweight_xx_p = optweight_xx;
-    if (optweight_yy_p!=NULL) *optweight_yy_p = optweight_yy;
+    if (optweight_xx_p!=NULL) *optweight_xx_p = - 0.5 * M_PI * g_t() * T_xx; // Optical weight in the projected state
+    if (optweight_yy_p!=NULL) *optweight_yy_p = - 0.5 * M_PI * g_t() * T_yy; // Optical weight in the projected state
     
     const double            chi_s_out = (chi_x_out  +  chi_y_out) / 2.;
     const double            chi_d_out = (chi_x_out  -  chi_y_out) / 2.;
