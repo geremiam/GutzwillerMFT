@@ -5,11 +5,24 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import SymLogNorm
 import numpy as np
 
-def ColorPlot(fig, ax, data, Labels, horiz_extent=(), vert_extent=(), logscale=False):
+def ColorPlot(fig, ax, data, Labels, horiz_extent=(), vert_extent=(), action_complex='r', logscale=False):
     """ Plots the 2D array "data" (first index along horizontal axis and second index 
     along vertical axis). The three strings in the list "Labels" correspond to labels for 
     the horizontal, vertical, and color axes, respectively. Axis ends can be specified as 
     tuples (optional). """
+    
+    if (np.iscomplexobj(data)):
+        if   (action_complex=='r'):
+            data = np.real(data)
+            Labels[2] = r'$\Re$ '+Labels[2]
+        elif (action_complex=='i'):
+            data = np.real(data)
+            Labels[2] = r'$\Im$ '+Labels[2]
+        elif (action_complex=='m'):
+            data = np.abs(data)
+            Labels[2] = r'$|$'+Labels[2]+r'$|$'
+        else: 
+            print('WARNING: if "data" is complex, "action_complex" must be one of "r", "i", and "m".')
     
     # Check for axis extents
     if (horiz_extent==()):
@@ -55,8 +68,14 @@ def Plot(ax, x, y, Labels):
     the horizontal, vertical, and color axes, respectively. Axis ends can be specified as 
     tuples (optional). """
     
-    ax.plot(x, y, color='tab:grey', zorder=1)
-    ax.scatter(x, y, color='tab:red', marker='.', s=16., zorder=2)
+    if (np.iscomplexobj(y)):
+        ax.plot(x, np.real(y), color='tab:blue', ls='--', zorder=1)
+        ax.plot(x, np.imag(y), color='tab:pink', ls='--', zorder=1)
+        ax.plot(x, np.abs(y) , color='tab:grey', ls='-',  zorder=1)
+        #ax.scatter(x, y, color='tab:red', marker='.', s=16., zorder=2)
+    else:
+        ax.plot(x, y, color='tab:grey', zorder=1)
+        ax.scatter(x, y, color='tab:red', marker='.', s=16., zorder=2)
     
     # Set axis labels
     ax.set_xlabel(Labels[0])

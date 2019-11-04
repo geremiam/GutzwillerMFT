@@ -33,7 +33,6 @@ def indexing_tuple(input_dims, var_dims):
     tup = tuple(input_dims) # Redefine as tuple
     return tup, plotting_dims
 
-# Functions for the "multip" routines
 def find_vars(varname, dims_dict):
     """ Finds all variables defined on the same dimensions as "var". """
     vars_to_plot = []
@@ -43,6 +42,7 @@ def find_vars(varname, dims_dict):
     
     return vars_to_plot
 
+# Plotting functions
 def create_gridplot(rows, numplots, **kwargs):
     """ Outputs a grid of subplots given the number of subplots needed as well as the 
     desired number of rows. Also returns the number of columns. """
@@ -58,7 +58,6 @@ def create_gridplot(rows, numplots, **kwargs):
     
     return fig, axes, cols
 
-# Plotting functions
 def colorplor_extents(plotting_dims, coord_vars):
     assert (len(plotting_dims) == 2), "Function 'colorplor_extents' assumes two plotting dimensions."
     # Define the extents of the axes if they have coordinate variables
@@ -145,11 +144,21 @@ def multip_lineplot(plotting_dims, tup, coord_vars, vars_to_plot, vars_dict, row
     return
 
 
-def main(filename, varname, input_dims, all, save):
-    print() # Linebreak
+def plotting_driver(vars_dict, dims_dict, coord_vars, varname, input_dims, all, save_as=None):
+    '''
+    Plots variables given in a standard format. Can 
+    
+    vars_dict: dictionnary of variable names and data
+    dims_dict: dictionnary of variable names and their dimensions
+    coord_vars: dictionnary of coordinate variables and data
+    varname: name of the variable to be plotted (amongst those in vars_dict)
+    input_dims: list of dimensions indices to be plotted ('p' plots agains the whole dimension).
+                Must match the dimensions of the variable 'varname'
+    all: If true, plot all variables defined on the same set of dimensions
+    save_as: If not 'None', the plot is saved as this name instead of being displayed
+    '''
     
     # "coord_vars" is a dictionary containing coordinate variables
-    dims, vars_dict, dims_dict, coord_vars = nc_IO.nc_read(filename) # Get data
     var      = vars_dict[varname] # Get the requested variable
     var_dims = dims_dict[varname] # "var_dims" is a tuple with the dims on which the var is defined
     
@@ -178,10 +187,27 @@ def main(filename, varname, input_dims, all, save):
             single_lineplot(plotting_dims, tup, coord_vars, varname, var)
         
     plt.tight_layout()
-    if (save):
-        plt.savefig(filename+".pdf",bbox_inches='tight')
-    else:
+    if (save_as==None):
         plt.show()
+    else:
+        plt.savefig(save_as,bbox_inches='tight')
+    
+    return
+
+
+def main(filename, varname, input_dims, all, save):
+    '''
+    Reads data from a NetCDF dataset and calls plotting_driver().
+    '''
+    # "coord_vars" is a dictionary containing coordinate variables
+    dims, vars_dict, dims_dict, coord_vars = nc_IO.nc_read(filename) # Get data
+    
+    if (save):
+        save_as = filename+".pdf"
+    else:
+        save_as = None
+    
+    plotting_driver(vars_dict, dims_dict, coord_vars, varname, input_dims, all, save_as)
     
     return
 
