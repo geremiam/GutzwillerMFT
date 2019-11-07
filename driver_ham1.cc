@@ -8,6 +8,7 @@ NetCDF dataset. */
 #include <complex> // For complex numbers
 #include <cmath> // For many math functions
 #include <string>
+#include <cassert>
 #include "alloc.h"
 #include "array_init.h" // Array initialization
 #include "ncio.h" // Class for creating simple NetCDF datasets
@@ -18,27 +19,26 @@ using std::string;
 
 // Class that defines the parameter space for this Hamiltonian
 
-class pspace_t {
+class pspacebase_t {
   private:
     // Private copy constructor (prohibits copy creation)
-    pspace_t(const pspace_t&);
+    pspacebase_t(const pspacebase_t&);
     // Private assignment operator (prohibits assignment)
-    const pspace_t& operator=(const pspace_t&);
+    const pspacebase_t& operator=(const pspacebase_t&);
     
   public:
     // Parameter defining the parameter space
     
-    // Fix the order: t_, tp_, J_, x_
-    static const size_t dims_num = 4; // Number of coordinates
-    const string dim_names[dims_num] = {"t_", "tp_", "J_", "x_"};
+    // The order of array components must match.
+    const size_t dims_num_; // Number of coordinates; to be given in constructor.
+    string* dim_names_; // Name of every coordinate; to be given in constructor.
+    size_t* dim_lengths_; // Number of points for every coordinate, to be given in constructor.
+    double* dim_ranges_; // Range of the coordinates, given in the form [min0,max0,min1,max1,...] in the constructor.
     
-    size_t dim_lengths_  [dims_num]; // Number of points for every coordinate, to be given by user.
-    double dim_ranges_ [2*dims_num]; // Range of the coordinates, given in the form [min0,max0,min1,max1,...]. To be given by user.
-    
-    int parspace_pts; // To contain the number of points in parameter space.
+    int parspace_pts; // To contain the number of points in parameter space (product of all the dim_lengths_).
     
     // Arrays of coordinate variables
-    double* coord_arrays [dims_num]; // Each element is a pointer to an array of doubles.
+    double** coord_arrays; // Each element is a pointer to an array of doubles.
     
     // Variables to be stored on the parameter space. We store them in 1D arrays, and use 
     // the method idx() to index them.
@@ -58,21 +58,30 @@ class pspace_t {
     double* mu_grid; // Holds the chemical potential for the converged system
     
     // Constructor declaration
-    pspace_t(const size_t*const dim_lengths, const double*const dim_ranges)
+    pspacebase_t(const size_t dims_num, const char*const dim_names[], const size_t*const dim_lengths, const double*const dim_ranges)
+    :dims_num_(dims_num)
     {
+        // Arrays that hold information on dimensions
+        dim_names_   = new string   [dims_num_];
+        dim_lengths_ = new size_t   [dims_num_];
+        dim_ranges_  = new double [2*dims_num_];
+        coord_arrays = new double*  [dims_num_];
+        
         parspace_pts = 1; // Initialize to one to begin with
         
-        for (int i=0; i<dims_num; ++i)
+        // Loop over all dimensions
+        for (int i=0; i<dims_num_; ++i)
         {
           if (dim_lengths[i]<1) std::cout << "*** WARNING *** ALL DIMENSION LENGTHS SHOULD BE GREATER THAN ZERO\n"; 
           // Copy values from input arrays into class attributes
+          dim_names_[i]      = dim_names[i];
           dim_lengths_[i]    = dim_lengths[i];
           dim_ranges_[2*i]   = dim_ranges[2*i];
           dim_ranges_[2*i+1] = dim_ranges[2*i+1];
           
           parspace_pts *= dim_lengths_[i]; // Find total size of parspace
           
-          // Initialize arrays of coordinates based on given values
+          // Allocate and initialize arrays of coordinates based on given values
           coord_arrays[i] = new double [dim_lengths_[i]]; // Allocate array
           if (dim_lengths_[i]>1) // Initialize multi-component arrays
           {
@@ -111,14 +120,11 @@ class pspace_t {
         ValInitArray(parspace_pts, energy_grid,  -99.);
         ValInitArray(parspace_pts, mu_grid,       -9.);
         
-        std::cout << "pspace_t instance created.\n";
+        std::cout << "pspacebase_t instance created.\n";
     }
     // Destructor declaration
-    ~pspace_t()
+    ~pspacebase_t()
     {
-        for (int i=0; i<dims_num; ++i)
-          delete [] coord_arrays[i];
-        
         delete [] chi_s_grid; // MF variables
         delete [] chi_d_grid;
         delete [] Delta_s_grid;
@@ -132,17 +138,20 @@ class pspace_t {
         delete [] energy_grid;
         delete [] mu_grid;
         
-        std::cout << "pspace_t instance deleted.\n";
+        for (int i=0; i<dims_num_; ++i)
+          delete [] coord_arrays[i];
+        
+        delete [] dim_names_;
+        delete [] dim_lengths_;
+        delete [] dim_ranges_;
+        delete [] coord_arrays; // Make sure the inner pointers are deleted before this one
+        
+        std::cout << "pspacebase_t instance deleted.\n";
     }
     
-    int idx(const int t_idx, const int tp_idx, const int J_idx, const int x_idx)
+    virtual void parvals(const int i, double*const t_pointer, double*const tp_pointer, double*const J_pointer, double*const x_pointer, const bool with_output=false)
     {
-        // Returns the index of the var arrays corresponding to indices i, j of the coord
-        // var arrays. Trivial in this case.
-        return  x_idx + 
-                J_idx * dim_lengths_[3] + 
-               tp_idx * dim_lengths_[3] * dim_lengths_[2] + 
-                t_idx * dim_lengths_[3] * dim_lengths_[2] * dim_lengths_[1];
+        std::cout << "WARNING: Called pspacebase_t::parvals()\n";
     }
     
     void SaveData(const string GlobalAttr, const string path)
@@ -158,16 +167,16 @@ class pspace_t {
         
         // Constructor for the dataset class creates a dataset
         const bool prune = true; // Activates pruning of length-1 dimensions.
-        newDS_t newDS(dims_num, dim_names, dim_lengths_, vars_num, var_names, var_complex, GlobalAttr, path, prune);
+        newDS_t newDS(dims_num_, dim_names_, dim_lengths_, vars_num, var_names, var_complex, GlobalAttr, path, prune);
         
         // Define coordinate variables. Order matters.
-        for (int i=0; i<dims_num; ++i)
-          newDS.DefCoordVar(i, dim_names[i]);
+        for (int i=0; i<dims_num_; ++i)
+          newDS.DefCoordVar(i, dim_names_[i]);
         
         newDS.EndDef(); // Exit definition mode
         
         // Write coordinate variables
-        for (int i=0; i<dims_num; ++i)
+        for (int i=0; i<dims_num_; ++i)
           newDS.WriteCoordVar(i, coord_arrays[i]);
         
         // List for holding the pointers to the vars
@@ -195,16 +204,13 @@ class pspace_t {
         
         // Must declare 'const' variables as firstprivate for compatibility with new gcc 
         // versions. See https://gcc.gnu.org/gcc-9/porting_to.html#ompdatasharing.
-        #pragma omp parallel default(none) shared(FPparams,MFs_initial,GlobalAttr,std::cout) firstprivate(with_output) reduction(+:numfails)
+        #pragma omp parallel default(none) shared(FPparams,MFs_initial,GlobalAttr,std::cout) firstprivate(with_output,k1_pts,k2_pts) reduction(+:numfails)
         {
         // Declare and construct an instance of ham1_t
         ham1_t ham1(FPparams, MFs_initial, k1_pts, k2_pts);
     
-        // Set parameters to start values. Needed in the attributes. Leave temperature at default value.
-        ham1.t_  = dim_ranges_[2*0];
-        ham1.tp_ = dim_ranges_[2*1];
-        ham1.J_  = dim_ranges_[2*2];
-        ham1.x_  = dim_ranges_[2*3];
+        // Set parameters to start values. Useful to put in attributes. Leave temperature at default value.
+        parvals(0, &ham1.t_, &ham1.tp_, &ham1.J_, &ham1.x_, with_output);
         
         #pragma omp single
         {
@@ -216,27 +222,11 @@ class pspace_t {
         }
     
         // Loop over values of the parameter space
-        #pragma omp for collapse(4) schedule(dynamic,1)
-        for (   int  t_idx=0;  t_idx<dim_lengths_[0]; ++t_idx)
-         for (  int tp_idx=0; tp_idx<dim_lengths_[1]; ++tp_idx)
-          for ( int  J_idx=0;  J_idx<dim_lengths_[2]; ++J_idx)
-           for (int  x_idx=0;  x_idx<dim_lengths_[3]; ++x_idx)
+        #pragma omp for schedule(dynamic,1)
+        for (int i=0; i<parspace_pts; ++i)
            {
                // Adjust phase space parameters
-               ham1.t_  = coord_arrays[0][t_idx];
-               ham1.tp_ = coord_arrays[1][tp_idx];
-               ham1.J_  = coord_arrays[2][J_idx];
-               ham1.x_  = coord_arrays[3][x_idx]; // Assign value of x
-               
-               if (with_output) // Print current params
-               {
-                 std::cout << "\n\n";
-                 if (dim_lengths_[0]!=1) std::cout <<  "t = " << ham1.t_  << "\t";
-                 if (dim_lengths_[1]!=1) std::cout << "tp = " << ham1.tp_ << "\t";
-                 if (dim_lengths_[2]!=1) std::cout <<  "J = " << ham1.J_  << "\t";
-                 if (dim_lengths_[3]!=1) std::cout <<  "x = " << ham1.x_  << "\t";
-                 std::cout << "\n";
-               }
+               parvals(i, &ham1.t_, &ham1.tp_, &ham1.J_, &ham1.x_, with_output);
                
                int loops=0; // Will be assigned the number of loops performed
                double mu=0.;// Will be assigned the chemical potential of the converged Ham.
@@ -249,7 +239,7 @@ class pspace_t {
                
                if (fail) // Print current params
                {
-                   std::cout << "\tWARNING: failure to converge after limit reached"
+                   std::cout << "\tWARNING: failure to converge after limit reached at point " << i << "of " << parspace_pts
                              <<  "\tt = " << ham1.t_
                              << "\ttp = " << ham1.tp_  
                              <<  "\tJ = " << ham1.J_ 
@@ -257,18 +247,18 @@ class pspace_t {
                    ++numfails;
                }
                
-               chi_s_grid  [idx(t_idx,tp_idx,J_idx,x_idx)] = ham1.MFs_.chi_s;
-               chi_d_grid  [idx(t_idx,tp_idx,J_idx,x_idx)] = ham1.MFs_.chi_d;
-               Delta_s_grid[idx(t_idx,tp_idx,J_idx,x_idx)] = ham1.MFs_.Delta_s;
-               Delta_d_grid[idx(t_idx,tp_idx,J_idx,x_idx)] = ham1.MFs_.Delta_d;
+               chi_s_grid  [i] = ham1.MFs_.chi_s;
+               chi_d_grid  [i] = ham1.MFs_.chi_d;
+               Delta_s_grid[i] = ham1.MFs_.Delta_s;
+               Delta_d_grid[i] = ham1.MFs_.Delta_d;
                
-               DeltaSC_s_grid   [idx(t_idx,tp_idx,J_idx,x_idx)] = DeltaSC_s;
-               DeltaSC_d_grid   [idx(t_idx,tp_idx,J_idx,x_idx)] = DeltaSC_d;
-               optweight_xx_grid[idx(t_idx,tp_idx,J_idx,x_idx)] = optweight_xx;
-               optweight_yy_grid[idx(t_idx,tp_idx,J_idx,x_idx)] = optweight_yy;
-               energy_grid      [idx(t_idx,tp_idx,J_idx,x_idx)] = energy;
-               mu_grid          [idx(t_idx,tp_idx,J_idx,x_idx)] = mu;
-               loops_grid       [idx(t_idx,tp_idx,J_idx,x_idx)] = loops; // Save the number of loops to array.
+               DeltaSC_s_grid   [i] = DeltaSC_s;
+               DeltaSC_d_grid   [i] = DeltaSC_d;
+               optweight_xx_grid[i] = optweight_xx;
+               optweight_yy_grid[i] = optweight_yy;
+               energy_grid      [i] = energy;
+               mu_grid          [i] = mu;
+               loops_grid       [i] = loops; // Save the number of loops to array.
                
                if (with_output) std::cout << std::endl;
            }
@@ -284,8 +274,159 @@ class pspace_t {
     }
 };
 
+class pspace_t:public pspacebase_t {
+  private:
+    // Private copy constructor (prohibits copy creation)
+    pspace_t(const pspace_t&);
+    // Private assignment operator (prohibits assignment)
+    const pspace_t& operator=(const pspace_t&);
+    
+  public:
+    // Parameter defining the parameter space
+    
+    // The order of array components must match.
+    // Order of coordinates: t, tp, J, x
+    static const size_t dims_num = 4; // Number of coordinates
+    static constexpr const char*const dim_names[dims_num] = {"t_", "tp_", "J_", "x_"};
+    
+    // Constructor declaration
+    pspace_t(const size_t*const dim_lengths, const double*const dim_ranges)
+    :pspacebase_t(dims_num, dim_names, dim_lengths, dim_ranges)
+    {
+        std::cout << "pspace_t instance created.\n";
+    }
+    // Destructor declaration
+    ~pspace_t()
+    {
+        std::cout << "pspace_t instance deleted.\n";
+    }
+    
+    void parvals(const int i, double*const t_pointer, double*const tp_pointer, double*const J_pointer, double*const x_pointer, const bool with_output=false)
+    {
+        // Returns values of the parameters based on the index i. Indexing is in the order
+        // of the variables given in dim_names_, etc.
+        
+        // Recall the order: t_, tp_, J_, x_
+        
+        // Define a reference for convenience
+        const size_t*const& len = dim_lengths_;
+        
+        if ( (i >= parspace_pts) || (i < 0) )
+          std::cout << "WARNING from method parvals(): i is out of range.\n";
+        
+        const int i3 = i % len[3];
+        const int i2 = ( (i - i3) / len[3] ) % len[2];
+        const int i1 = ( (i - i3 - i2*len[3]) / (len[2]*len[3]) ) % len[1];
+        const int i0 = ( (i - i3 - i2*len[3] - i1*len[2]*len[3]) / (len[1]*len[2]*len[3]) ) % len[0];
+        
+        assert( i == i3 + 
+                     i2 * len[3] + 
+                     i1 * len[3] * len[2] + 
+                     i0 * len[3] * len[2] * len[1]);
+        
+        // Assign values
+        *t_pointer  = coord_arrays[0][i0];
+        *tp_pointer = coord_arrays[1][i1];
+        *J_pointer  = coord_arrays[2][i2];
+        *x_pointer  = coord_arrays[3][i3];
+        
+        if (with_output) // Print current params
+        {
+            std::cout << "\n\n";
+            if (len[0]!=1) std::cout <<  "t = " << *t_pointer  << "\t";
+            if (len[1]!=1) std::cout << "tp = " << *tp_pointer << "\t";
+            if (len[2]!=1) std::cout <<  "J = " << *J_pointer  << "\t";
+            if (len[3]!=1) std::cout <<  "x = " << *x_pointer  << "\t";
+            std::cout << "\n";
+        }
+    }
+    
+};
 
-int pstudyA(const bool show_output)
+class pspace_time_t:public pspacebase_t {
+  private:
+    // Private copy constructor (prohibits copy creation)
+    pspace_time_t(const pspace_time_t&);
+    // Private assignment operator (prohibits assignment)
+    const pspace_time_t& operator=(const pspace_time_t&);
+    
+  public:
+    // Parameter defining the parameter space
+    
+    // The order of array components must match.
+    // Order of coordinates: t, tp_avg, tp_amp, time, J, x 
+    // coord_arrays for time is not used (only index is used)
+    static const size_t dims_num = 6; // Number of coordinates
+    static constexpr const char*const dim_names[dims_num] = {"t_", "tp_avg", "tp_amp", "time", "J_", "x_"};
+    
+    // Constructor declaration
+    pspace_time_t(const size_t*const dim_lengths, const double*const dim_ranges)
+    :pspacebase_t(dims_num, dim_names, dim_lengths, dim_ranges)
+    {
+        std::cout << "pspace_time_t instance created.\n";
+    }
+    // Destructor declaration
+    ~pspace_time_t()
+    {
+        std::cout << "pspace_time_t instance deleted.\n";
+    }
+    
+    void parvals(const int i, double*const t_pointer, double*const tp_pointer, double*const J_pointer, double*const x_pointer, const bool with_output=false)
+    {
+        // Returns values of the parameters based on the index i. Indexing is in the order
+        // of the variables given in dim_names_, etc.
+        
+        // Recall the order: t_, tp_avg, tp_amp, time, J_, x_
+        
+        // Define a reference for convenience
+        const size_t*const& len = dim_lengths_;
+        
+        if ( (i >= parspace_pts) || (i < 0) )
+          std::cout << "WARNING from method parvals(): i is out of range.\n";
+        
+        const int i5 = i % len[5];
+        const int i4 = ( (i - i5) / len[5] ) % len[4];
+        const int i3 = ( (i - i5 - i4*len[5]) / (len[4]*len[5]) ) % len[3];
+        const int i2 = ( (i - i5 - i4*len[5] - i3*len[4]*len[5]) / (len[3]*len[4]*len[5]) ) % len[2];
+        const int i1 = ( (i - i5 - i4*len[5] - i3*len[4]*len[5] - i2*len[3]*len[4]*len[5]) / (len[2]*len[3]*len[4]*len[5]) ) % len[1];
+        const int i0 = ( (i - i5 - i4*len[5] - i3*len[4]*len[5] - i2*len[3]*len[4]*len[5] - i1*len[2]*len[3]*len[4]*len[5]) / (len[1]*len[2]*len[3]*len[4]*len[5]) ) % len[0];
+        
+        assert( i == i5 + 
+                     i4 * len[5] + 
+                     i3 * len[4] * len[5] + 
+                     i2 * len[3] * len[4] * len[5] + 
+                     i1 * len[2] * len[3] * len[4] * len[5] + 
+                     i0 * len[1] * len[2] * len[3] * len[4] * len[5]);
+        
+        // Assign values
+        *t_pointer  = coord_arrays[0][i0];
+        //             (__ tp_avg __)       (__ tp_amp ___)                    (_ time _) (period)
+        *tp_pointer = coord_arrays[1][i1] + coord_arrays[2][i2] * sin(2.*M_PI*(double)(i3)/len[3]);
+        // Note that there is no double counting because i3 goes from 0 to len[3]-1.
+        // coord_arrays for time is not used; instead, index is used.
+        *J_pointer  = coord_arrays[4][i4];
+        *x_pointer  = coord_arrays[5][i5];
+        
+        if (with_output) // Print current params
+        {
+            std::cout <<  "\n\nt_idx = " << i0 << " of " << len[0]-1 << "    ";
+            std::cout << "tp_avg_idx = " << i1 << " of " << len[1]-1 << "    ";
+            std::cout << "tp_amp_idx = " << i2 << " of " << len[2]-1 << "    ";
+            std::cout <<   "time_idx = " << i3 << " of " << len[3]-1 << "    ";
+            std::cout <<      "J_idx = " << i4 << " of " << len[4]-1 << "    ";
+            std::cout <<      "x_idx = " << i5 << " of " << len[5]-1 << "\n";
+            
+            std::cout <<  "t = " << *t_pointer  << "    ";
+            std::cout << "tp = " << *tp_pointer << "    ";
+            std::cout <<  "J = " << *J_pointer  << "    ";
+            std::cout <<  "x = " << *x_pointer  << "\n\n";
+        }
+    }
+    
+};
+
+// ***************************************************************************************
+int pspace_studyA(const bool show_output)
 {
     // Order of coordinates: t, tp, J, x
     const size_t dim_lengths[4]  = {1, 1, 1, 61};
@@ -310,7 +451,7 @@ int pstudyA(const bool show_output)
     return info;
 }
 
-int pstudyB(const bool show_output)
+int pspace_studyB(const bool show_output)
 {
     // Order of coordinates: t, tp, J, x
     const size_t dim_lengths[4]  = {1, 101, 1, 31};
@@ -335,7 +476,7 @@ int pstudyB(const bool show_output)
     return info;
 }
 
-int pstudyB_fast(const bool show_output)
+int pspace_studyB_fast(const bool show_output)
 {
     // Order of coordinates: t, tp, J, x
     const size_t dim_lengths[4]  = {1, 26, 1, 16};
@@ -359,10 +500,36 @@ int pstudyB_fast(const bool show_output)
     const int info = pspace.pstudy(MFs_initial, FPparams, k1_pts, k2_pts, show_output);
     return info;
 }
+// ***************************************************************************************
+int pspace_time_studyA(const bool show_output)
+{
+    // Order of coordinates:        t,      tp_avg,   tp_amp,   time,  J,            x 
+    const size_t dim_lengths[6]  = {1,      1,        1,        11,    1,            11};
+    const double dim_ranges[2*6] = {1., 1., -.3, -.3, .05, .05, 0, 10, 1./5., 1./5., 0.01, 0.31};
+    
+    pspace_time_t pspace(dim_lengths, dim_ranges);
+    
+    MFs_t MFs_initial(0.1, 0., {0.,0.}, {0.1,0.});
+    
+    const double tol = 1.e-6;
+    const int loops_lim = 800;
+    const int mixing_vals_len = 7;
+    const int   counter_vals [mixing_vals_len] = {100, 200, 300, 400, 500, 600, 700};
+    const double mixing_vals [mixing_vals_len] = {0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3};
+    FPparams_t FPparams(tol, loops_lim, mixing_vals_len, counter_vals, mixing_vals);
+    
+    // Choose twice a prime number for momentum space grid resolution
+    const int k1_pts = 298;
+    const int k2_pts = 298;
+    
+    const int info = pspace.pstudy(MFs_initial, FPparams, k1_pts, k2_pts, show_output);
+    return info;
+}
+// ***************************************************************************************
 
 
 int main(int argc, char* argv[])
 {
-    const int info = pstudyA(false);
+    const int info = pspace_time_studyA(false);
     return info;
 }
