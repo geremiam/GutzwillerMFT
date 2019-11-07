@@ -204,7 +204,7 @@ class pspacebase_t {
         
         // Must declare 'const' variables as firstprivate for compatibility with new gcc 
         // versions. See https://gcc.gnu.org/gcc-9/porting_to.html#ompdatasharing.
-        #pragma omp parallel default(none) shared(FPparams,MFs_initial,GlobalAttr,std::cout) firstprivate(with_output,k1_pts,k2_pts) reduction(+:numfails)
+        #pragma omp parallel default(none) shared(FPparams,GlobalAttr,std::cout) firstprivate(with_output,k1_pts,k2_pts,MFs_initial) reduction(+:numfails)
         {
         // Declare and construct an instance of ham1_t
         ham1_t ham1(FPparams, MFs_initial, k1_pts, k2_pts);
@@ -454,32 +454,7 @@ int pspace_studyA(const bool show_output)
 int pspace_studyB(const bool show_output)
 {
     // Order of coordinates: t, tp, J, x
-    const size_t dim_lengths[4]  = {1, 101, 1, 31};
-    const double dim_ranges[2*4] = {1., 1.,    -0.5, 0.5,    1./5., 1./5.,    0.01, 0.31};
-    
-    pspace_t pspace(dim_lengths, dim_ranges);
-    
-    MFs_t MFs_initial(0.1, 0., {0.,0.}, {0.1,0.});
-    
-    const double tol = 1.e-6;
-    const int loops_lim = 800;
-    const int mixing_vals_len = 7;
-    const int   counter_vals [mixing_vals_len] = {100, 200, 300, 400, 500, 600, 700};
-    const double mixing_vals [mixing_vals_len] = {0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3};
-    FPparams_t FPparams(tol, loops_lim, mixing_vals_len, counter_vals, mixing_vals);
-    
-    // Choose twice a prime number for momentum space grid resolution
-    const int k1_pts = 298;
-    const int k2_pts = 298;
-    
-    const int info = pspace.pstudy(MFs_initial, FPparams, k1_pts, k2_pts, show_output);
-    return info;
-}
-
-int pspace_studyB_fast(const bool show_output)
-{
-    // Order of coordinates: t, tp, J, x
-    const size_t dim_lengths[4]  = {1, 26, 1, 16};
+    const size_t dim_lengths[4]  = {1, 101, 1, 31}; // {1, 26, 1, 16};
     const double dim_ranges[2*4] = {1., 1.,    -0.5, 0.5,    1./5., 1./5.,    0.01, 0.31};
     
     pspace_t pspace(dim_lengths, dim_ranges);
@@ -504,8 +479,8 @@ int pspace_studyB_fast(const bool show_output)
 int pspace_time_studyA(const bool show_output)
 {
     // Order of coordinates:        t,      tp_avg,   tp_amp,   time,  J,            x 
-    const size_t dim_lengths[6]  = {1,      1,        1,        11,    1,            11};
-    const double dim_ranges[2*6] = {1., 1., -.3, -.3, .05, .05, 0, 10, 1./5., 1./5., 0.01, 0.31};
+    const size_t dim_lengths[6]  = {1,      1,        5,        101,   1,            16};
+    const double dim_ranges[2*6] = {1., 1., -.3, -.3, .01, .05, 0, 10, 1./5., 1./5., 0.01, 0.31};
     
     pspace_time_t pspace(dim_lengths, dim_ranges);
     
