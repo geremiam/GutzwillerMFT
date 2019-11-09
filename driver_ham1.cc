@@ -52,6 +52,7 @@ class pspacebase_t {
     complex<double>* DeltaSC_d_grid;
     double* optweight_xx_grid;
     double* optweight_yy_grid;
+    double* tp_grid;
     
     int   * loops_grid; // holds the number of loops done at each point
     double* energy_grid; // Holds the MF energy for later comparison
@@ -102,6 +103,7 @@ class pspacebase_t {
         DeltaSC_d_grid    = new complex<double> [parspace_pts];
         optweight_xx_grid = new double          [parspace_pts];
         optweight_yy_grid = new double          [parspace_pts];
+        tp_grid           = new double          [parspace_pts];
         loops_grid        = new int             [parspace_pts];
         energy_grid       = new double          [parspace_pts];
         mu_grid           = new double          [parspace_pts];
@@ -116,6 +118,7 @@ class pspacebase_t {
         ValInitArray(parspace_pts, DeltaSC_d_grid, -99.);
         ValInitArray(parspace_pts, optweight_xx_grid, -99.);
         ValInitArray(parspace_pts, optweight_yy_grid, -99.);
+        ValInitArray(parspace_pts, tp_grid, -99.);
         ValInitArray(parspace_pts, loops_grid,     -1);
         ValInitArray(parspace_pts, energy_grid,  -99.);
         ValInitArray(parspace_pts, mu_grid,       -9.);
@@ -134,6 +137,7 @@ class pspacebase_t {
         delete [] DeltaSC_d_grid;
         delete [] optweight_xx_grid;
         delete [] optweight_yy_grid;
+        delete [] tp_grid;
         delete [] loops_grid;
         delete [] energy_grid;
         delete [] mu_grid;
@@ -161,9 +165,9 @@ class pspacebase_t {
         // We define parameters required to create the dataset. Don't forget to adjust these depending on the parameter space defined above. 
         // Important: Note that the order of the variables must be kept consistent.
         
-        const size_t vars_num = 10; // Variables to be saved other than coord variables
-        string var_names [vars_num] = {"chi_s", "chi_d", "Delta_s", "Delta_d", "DeltaSC_s", "DeltaSC_d", "optweight_xx", "optweight_yy", "mu", "energy"}; // List for the variable names
-        bool var_complex [vars_num] = { false,  false,   true,      true,      true,        true,        false,          false,          false, false}; // List for indicating whether vars are complex
+        const size_t vars_num = 11; // Variables to be saved other than coord variables
+        string var_names [vars_num] = {"chi_s","chi_d","Delta_s","Delta_d","DeltaSC_s","DeltaSC_d","optweight_xx","optweight_yy", "tp", "mu","energy"}; // List for the variable names
+        bool var_complex [vars_num] = {  false,  false,     true,     true,       true,       true,         false,         false,false,false,false}; // List for indicating whether vars are complex
         
         // Constructor for the dataset class creates a dataset
         const bool prune = true; // Activates pruning of length-1 dimensions.
@@ -185,7 +189,7 @@ class pspacebase_t {
                                    reinterpret_cast<double*const>(Delta_d_grid),
                                    reinterpret_cast<double*const>(DeltaSC_s_grid), 
                                    reinterpret_cast<double*const>(DeltaSC_d_grid),
-                                   optweight_xx_grid, optweight_yy_grid,
+                                   optweight_xx_grid, optweight_yy_grid, tp_grid,
                                    mu_grid,
                                    energy_grid};
         newDS.WriteVars(vars); // Write the variables
@@ -256,6 +260,7 @@ class pspacebase_t {
                DeltaSC_d_grid   [i] = DeltaSC_d;
                optweight_xx_grid[i] = optweight_xx;
                optweight_yy_grid[i] = optweight_yy;
+               tp_grid          [i] = ham1.tp_;
                energy_grid      [i] = energy;
                mu_grid          [i] = mu;
                loops_grid       [i] = loops; // Save the number of loops to array.
@@ -478,9 +483,9 @@ int pspace_studyB(const bool show_output)
 // ***************************************************************************************
 int pspace_time_studyA(const bool show_output)
 {
-    // Order of coordinates:        t,      tp_avg,   tp_amp,   time,  J,            x 
-    const size_t dim_lengths[6]  = {1,      1,        5,        101,   1,            16};
-    const double dim_ranges[2*6] = {1., 1., -.3, -.3, .01, .05, 0, 10, 1./5., 1./5., 0.01, 0.31};
+    // Order of coordinates:        t,      tp_avg,   tp_amp,   time,   J,            x 
+    const size_t dim_lengths[6]  = {1,      1,        5,        100,    1,            16};
+    const double dim_ranges[2*6] = {1., 1., -.3, -.3, .01, .05, 0., 1., 1./5., 1./5., 0.01, 0.31};
     
     pspace_time_t pspace(dim_lengths, dim_ranges);
     
